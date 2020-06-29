@@ -1,0 +1,19 @@
+#
+# These are settings used for building libaed-fv module
+#
+
+export AED=true
+export EXTERNAL_LIBS=statis
+export SINGLE=false
+export PRECISION=1
+
+# The default is MacPorts : uncomment the next line if you use "homebrew"
+#export HOMEBREW=true
+
+export CURDIR=`pwd`
+
+export AEDFVDIR=${CURDIR}
+export AEDDIR=${CURDIR}/../libaed-water
+export AEDPLS=${CURDIR}/../libaed-dev
+
+export FV_CONFIGURED=true

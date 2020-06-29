@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeDynamicLibrary" ProjectCreator="Intel Fortran" Keyword="Dll" Version="11.0" ProjectIdGuid="{DE94B943-D973-4C1E-A427-E3CD39FBA78D}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="$(SolutionDir)\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\$(ProjectName)" TargetName="tuflowfv_external_wq" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName);$(SolutionDir)\..\..\libaed-water\include;$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\libaed-fv" PreprocessorDefinitions="_PRECISION=1;EXTERNAL_WQ=2;AED2" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug" Interfaces="true"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)" IgnoreDefaultLibraryNames="LIBCMT" GenerateDebugInformation="true" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="libaed-fv.lib libaed-water.lib libaed-benthic.lib libaed-demo.lib libaed-riparian.lib libaed-dev.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="$(SolutionDir)\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\$(ProjectName)" TargetName="tuflowfv_external_wq" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName);$(SolutionDir)\..\..\libaed-water\include;$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\libaed-fv" PreprocessorDefinitions="_PRECISION=1;EXTERNAL_WQ=2;AED2"/>
+				<Tool Name="VFLinkerTool" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="libaed-fv.lib libaed-water.lib libaed-benthic.lib libaed-demo.lib libaed-riparian.lib libaed-dev.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="$(SolutionDir)\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\$(ProjectName)" TargetName="tuflowfv_external_wq" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName);$(SolutionDir)\..\..\libaed-water\include;$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\libaed-fv" PreprocessorDefinitions="_PRECISION=1;EXTERNAL_WQ=2;AED2" WarnInterfaces="true" Traceback="true" BoundsCheck="true" Interfaces="true"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)" IgnoreDefaultLibraryNames="LIBCMTD" GenerateDebugInformation="true" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="libaed-fv.lib libaed-water.lib libaed-benthic.lib libaed-demo.lib libaed-riparian.lib libaed-dev.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="$(SolutionDir)\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\$(ProjectName)" TargetName="tuflowfv_external_wq" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName);$(SolutionDir)\..\..\libaed-water\include;$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\libaed-fv" PreprocessorDefinitions="_PRECISION=1;EXTERNAL_WQ=2;AED2"/>
+				<Tool Name="VFLinkerTool" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)" IgnoreDefaultLibraryNames="LIBCMTD" SubSystem="subSystemWindows" LinkDLL="true" AdditionalDependencies="libaed-fv.lib libaed-water.lib libaed-benthic.lib libaed-demo.lib libaed-riparian.lib libaed-dev.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="VTUNE|Win32" OutputDirectory="$(SolutionDir)\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\$(ProjectName)" TargetName="tuflowfv_external_wq" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugLineInfoOnly" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName);$(SolutionDir)\..\..\libaed-water\include;$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\libaed-fv" PreprocessorDefinitions="_PRECISION=1;EXTERNAL_WQ=2;AED2"/>
+				<Tool Name="VFLinkerTool" AdditionalOptions="/DLL" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)" FixedBaseAddress="linkFixedBaseAddressNo" AdditionalDependencies="libaed-fv.lib libaed-water.lib libaed-benthic.lib libaed-demo.lib libaed-riparian.lib libaed-dev.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="VTUNE|x64" OutputDirectory="$(SolutionDir)\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\$(ProjectName)" TargetName="tuflowfv_external_wq" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugLineInfoOnly" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName);$(SolutionDir)\..\..\libaed-water\include;$(SolutionDir)\$(PlatformName)-$(ConfigurationName)\libaed-fv" PreprocessorDefinitions="_PRECISION=1;EXTERNAL_WQ=2;AED2"/>
+				<Tool Name="VFLinkerTool" AdditionalOptions="/DLL" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(SolutionDir)\$(PlatformName)-$(ConfigurationName)" GenerateDebugInformation="true" FixedBaseAddress="linkFixedBaseAddressNo" AdditionalDependencies="libaed-fv.lib libaed-water.lib libaed-benthic.lib libaed-demo.lib libaed-riparian.lib libaed-dev.lib"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="fi;fd">
+		<File RelativePath="..\tuflowfv_external_wq\COMPILER_DIRECTIVES.FI"/></Filter>
+		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+		<File RelativePath=".\libaed-fv+.rc"/></Filter>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<File RelativePath="..\tuflowfv_external_wq\tuflowfv_external_wq.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>

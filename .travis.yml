@@ -1,0 +1,27 @@
+{
+  "language": "fortran",
+  "sudo": "required",
+  "dist": "trusty",
+  "before_install": [
+    "sudo apt-get update",
+    "sudo apt-get -y install build-essential",
+    "chmod 755 .travis/install-icc.sh",
+    "sudo .travis/install-icc.sh --components ipp,ifort --dest /opt/intel"
+  ],
+  "script": [
+    "source /opt/intel/bin/compilervars.sh intel64",
+    "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/ism/bin/intel64",
+    "git clone --depth=50 --branch=master https://github.com/AquaticEcoDynamics/libaed-water.git ../libaed-water",
+    "export AED=true",
+    "export EXTERNAL_LIBS=shared",
+    "export SINGLE=false",
+    "export PRECISION=1",
+    "export CURDIR=`pwd`",
+    "export AEDDIR=${CURDIR}/../libaed-water",
+    "export FV_CONFIGURED=true",
+    "./build_tfv_aed.sh"
+  ],
+  "after_success": null,
+  "group": "stable",
+  "os": "linux"
+}
