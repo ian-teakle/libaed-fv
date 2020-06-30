@@ -239,7 +239,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    Kw = base_par_extinction
    Ksed = tss_par_extinction
    IF ( do_zone_averaging ) old_zones = .FALSE.
-   print *,'    link options configured between TFV & AED2 - '
+   print *,'    link options configured between TFV & AED - '
    print *,'        link_ext_par       :  ',link_ext_par
    print *,'        link_water_clarity :  ',link_water_clarity
    print *,'        link_surface_drag  :  ',link_surface_drag,' (not implemented)'
@@ -273,9 +273,9 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
 #if DEBUG
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tvar) ) THEN
-            print *,"AED2 var ", i, tvar%sheet, tvar%diag, tvar%extern, TRIM(tvar%name)
+            print *,"AED var ", i, tvar%sheet, tvar%diag, tvar%extern, TRIM(tvar%name)
          ELSE
-            print *,"AED2 var ", i, " is empty"
+            print *,"AED var ", i, " is empty"
          ENDIF
       ENDDO
 #endif
@@ -305,7 +305,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
             names(j) = TRIM(tvar%name)
             min_(j) = tvar%minimum
             max_(j) = tvar%maximum
-            print *,"     S(",j,") AED2 pelagic(3D) variable: ", TRIM(names(j))
+            print *,"     S(",j,") AED pelagic(3D) variable: ", TRIM(names(j))
          ENDIF
       ENDIF
    ENDDO
@@ -318,7 +318,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
             bennames(j) = TRIM(tvar%name)
             min_(nwq_var+j) = tvar%minimum
             max_(nwq_var+j) = tvar%maximum
-            print *,"     B(",j,") AED2 benthic(2D) variable: ", TRIM(bennames(j))
+            print *,"     B(",j,") AED benthic(2D) variable: ", TRIM(bennames(j))
          ENDIF
       ENDIF
    ENDDO
@@ -329,7 +329,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
          IF ( tvar%diag ) THEN
             j = j + 1
             diagnames(j) = TRIM(tvar%name)
-            print *,"     D(",j,") AED2 diagnostic variable:  ", TRIM(diagnames(j))
+            print *,"     D(",j,") AED diagnostic variable:  ", TRIM(diagnames(j))
          ENDIF
       ENDIF
    ENDDO
@@ -1142,7 +1142,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-  print *," START do_aed_models"
+   print *,"   START do_aed_models"
 
    !#--------------------------------------------------------------------
    !# START-UP JOBS
@@ -1408,7 +1408,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
       ENDDO
     ENDIF
 
-print *,"Finished AED2 step"
+    print *,"   Finished AED step"
 
 CONTAINS
 
