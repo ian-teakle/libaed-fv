@@ -2,36 +2,36 @@
 !#                                                                             #
 !# fv_aed.F90                                                                  #
 !#                                                                             #
-!# Interface for FV (Finite Volume) Model to AED2 modules (libaed).            #
-!#   Designed for TUFLOW-FV, released by BMT-WBM:                              #
+!# Interface for FV (Finite Volume) Hydrodynamic Model to AED modules (libaed) #
+!#   Designed for TUFLOW-FV, released by BMT Pty Ltd:                          #
 !#   http://www.tuflow.com/Tuflow%20FV.aspx                                    #
 !#                                                                             #
 !# This is the main interface module that manages the connection with the      #
-!# host hydrodynamic model; done through the 4 PUBLIC functions listed below.  #
+!# host hydrodynamic model; done through the PUBLIC functions listed below.    #
 !#                                                                             #
 !#                                                                             #
 !#   -----------------------------------------------------------------------   #
 !#                                                                             #
 !# Developed by :                                                              #
 !#     AquaticEcoDynamics (AED) Group                                          #
-!#     School of Agriculture and Environment                                   #
 !# (C) The University of Western Australia                                     #
 !#                                                                             #
 !# Copyright by the AED-team @ UWA under the GNU Public License - www.gnu.org  #
 !#                                                                             #
 !#   -----------------------------------------------------------------------   #
 !#                                                                             #
-!# Created Aug 2013                                                            #
+!# Originally created August 2013                                              #
 !# Update Mar 2016: Add new env variables and feedback links                   #
 !# Update Jun 2016: Add riparian exchange functionality                        #
 !# Update Aug 2016: Add links for getting wave stress                          #
-!# Update Oct 2016: Add variable mbility support                               #
+!# Update Oct 2016: Add variable mobility support                              #
+!# Follow updates @ https://github.com/AquaticEcoDynamics/libaed-fv            #
 !#                                                                             #
 !###############################################################################
 
 #include "aed.h"
 
-#define FV_AED_VERS "1.3.1"
+#define FV_AED_VERS "1.3.2"
 
 #ifndef DEBUG
 #define DEBUG      0
@@ -50,7 +50,7 @@ MODULE fv_aed
    PUBLIC init_aed_models,     &
           init_var_aed_models, &
           set_env_aed_models,  &
-          set_env_particles,    &
+          set_env_particles,   &
           do_aed_models,       &
           clean_aed_models
 
@@ -188,9 +188,9 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    CHARACTER(len=64) :: models(64)
    NAMELIST /aed_models/ models
 
-   NAMELIST /aed_bio/ solution_method, link_bottom_drag,                      &
+   NAMELIST /aed_bio/ solution_method, link_bottom_drag,                       &
                        link_surface_drag, link_water_density,                  &
-                       link_water_clarity, aed_nml_file,                      &
+                       link_water_clarity, aed_nml_file,                       &
                        link_ext_par, base_par_extinction,                      &
                        ext_tss_extinction, tss_par_extinction,                 &
                        do_particle_bgc, do_2d_atm_flux, do_zone_averaging,     &
@@ -1142,7 +1142,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   print *,"   START do_aed_models"
+   print *,"    START do_aed_models"
 
    !#--------------------------------------------------------------------
    !# START-UP JOBS
@@ -1408,7 +1408,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
       ENDDO
     ENDIF
 
-    print *,"   Finished AED step"
+    print *,"    Finished AED step"
 
 CONTAINS
 
