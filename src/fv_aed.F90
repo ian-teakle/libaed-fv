@@ -1504,6 +1504,8 @@ END SUBROUTINE Light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+#if 0
+! This is the old version which calculated in the wrong direction
 !###############################################################################
 SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
 !-------------------------------------------------------------------------------
@@ -1586,6 +1588,89 @@ SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
    Fsed = Fsed / dt !# Average flux rate for full time step used in AED2
 END SUBROUTINE Settling
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#endif
+!###############################################################################
+SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
+!-------------------------------------------------------------------------------
+!
+! Update settling of AED2 state variables in a given column
+!
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   INTEGER,INTENT(in)     :: N       !# number of vertical layers
+   AED_REAL,INTENT(in)    :: dt      !# time step (s)
+   AED_REAL,INTENT(in)    :: h(:)    !# layer thickness (m)
+   AED_REAL,INTENT(in)    :: wvel(:) !# vertical advection speed
+   AED_REAL,INTENT(inout) :: Fsed    !# value of sediment input due to settling
+   AED_REAL,INTENT(inout) :: Y(:)
+!
+!CONSTANTS
+   INTEGER,PARAMETER :: itmax=100
+!
+!LOCALS
+   INTEGER  :: i,k,it
+   AED_REAL :: step_dt
+   AED_REAL :: Yc
+   AED_REAL :: c,cmax
+   AED_REAL :: cu(N+1)
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   Fsed = 0. !# initialize sediment settling fluxes with zero
+   cu   = 0. !# initialize interface fluxes with zero
+   cmax = 0. !# initialize maximum Courant number
+
+   !# compute maximum Courant number
+   !      calculated as number of layers that the particles will travel based
+   !      on settling or buoyancy velocity.
+   !      This number is then used to split the vertical movement
+   !      calculations to limit movement across a single layer
+   DO k=2,N
+      !# sinking particles
+      c=abs(wvel(k-1))*dt/(0.5*(h(k-1)+h(k)))
+      IF (c > cmax) cmax=c
+      !# rising particles
+      c=abs(wvel(k))*dt/(0.5*(h(k-1)+h(k)))
+      IF (c > cmax) cmax=c
+   ENDDO
+
+   it=min(itmax,int(cmax)+1)
+   step_dt = dt / float(it);
+
+   !# splitting loop
+   DO i = 1,it
+      !# vertical loop
+      DO k=N,2,-1
+         !# compute the slope ratio
+         IF (wvel(k) > 0.) THEN !# Particle is rising
+            Yc=Y(k)       !# central value
+         ELSE !# negative speed Particle is sinking
+            Yc=Y(k-1)     !# central value
+         ENDIF
+
+         !# compute the limited flux
+         cu(k)=wvel(k) * Yc
+      ENDDO
+
+      !# do the upper boundary conditions
+      cu(1) = zero_       !# limit flux into the domain from atmosphere
+
+      !# do the lower boundary conditions
+      IF (wvel(N) > 0.) THEN !# Particle is rising
+         cu(N+1) = 0.  !flux from benthos is zero
+      ELSE  !# Particle is settling
+         cu(N+1) = wvel(N)*Y(N)
+         Fsed = cu(N+1) * step_dt !# flux settled into the sediments per sub time step
+      ENDIF
+      !# do the vertical advection step including positive migration
+      !# and settling of suspended matter.
+      DO k=N,1,-1
+          Y(k)=Y(k) - step_dt * ((cu(k) - cu(k+1)) / h(k))
+      ENDDO
+   ENDDO !# end of the iteration loop
+   Fsed = Fsed / dt !# Average flux rate for full time step used in AED2
+END SUBROUTINE Settling
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
@@ -1626,7 +1711,6 @@ LOGICAL FUNCTION Riparian(column, actv, shade_frac, rain_loss)
    IF (link_solar_shade) shade_frac = localshade
 
    Riparian = actv
-
 END FUNCTION Riparian
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
