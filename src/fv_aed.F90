@@ -1138,6 +1138,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
    AED_REAL :: rain_loss
    LOGICAL  :: aed_active_col
    AED_REAL,DIMENSION(:),POINTER :: tpar
+   AED_REAL,PARAMETER :: r100 = 1.0e2
    INTEGER :: grp, prt, stat, idx3d
 !
 !-------------------------------------------------------------------------------
@@ -1318,7 +1319,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
             ! Check for cells that are routed to dry pools
             IF ( h(benth_map(na)) >= min_water_depth ) THEN
                cc(:,benth_map(na))=cc(:,benth_map(na))+dt*flux_rip(:) &
-                              * MIN((area(col)/area(na)),1e2)/h(benth_map(na))
+                              * MIN((area(col)/area(na)),r100)/h(benth_map(na))
             ENDIF
          ENDIF
          CYCLE

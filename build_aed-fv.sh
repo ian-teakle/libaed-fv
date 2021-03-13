@@ -50,7 +50,8 @@ fi
 
 if [ "$FC" = "ifort" ] ; then
   if [ -d /opt/intel/bin ] ; then
-    . /opt/intel/bin/compilervars.sh intel64
+    #. /opt/intel/bin/compilervars.sh intel64
+    . /opt/intel/oneapi/setvars.sh
   fi
   which ifort >& /dev/null
   if [ $? != 0 ] ; then

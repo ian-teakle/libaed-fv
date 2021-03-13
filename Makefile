@@ -3,7 +3,7 @@
 # with hydrodynamic driver wrapper
 #
 
-VERS=2.3.0
+VERS=3.0.0
 
 objdir=obj
 srcdir=src
@@ -33,8 +33,8 @@ endif
 ifeq ($(F90),ifort)
   INCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback
-  OPT_FFLAGS=-O3 -openmp
-  FFLAGS=-fpp -warn all -module ${moddir} -i-static -mp1 -warn nounused $(DEFINES)
+  OPT_FFLAGS=-O3 -qopenmp
+  FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -warn nounused $(DEFINES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check
   endif
@@ -42,6 +42,15 @@ ifeq ($(F90),ifort)
   LIBS+=-lifcore -lsvml
   LIBS+=-limf -lintlc
   LIBS+=-L/opt/intel/lib -Wl,-rpath=/opt/intel/lib
+else ifeq ($(F90),flang)
+  INCLUDES+=-I../flang_extra/mod
+  DEBUG_FFLAGS=-g
+  OPT_FFLAGS=-O3
+  FFLAGS=-fPIC -module ${moddir} $(DEFINES) $(INCLUDES)
+  ifeq ($(WITH_CHECKS),true)
+    FFLAGS+=-Mbounds
+  endif
+  FFLAGS+=-r8
 endif
 
 FFLAGS+=-fPIC
@@ -92,12 +101,13 @@ INCLUDES += -I${moddir}
 
 
 FVOBJECTS=${objdir}/fv_zones.o ${objdir}/fv_aed.o
-OBJECTS=${objdir}/tuflowfv_external_wq.o
+OBJECTS=${objdir}/tuflowfv_external_wq_aed.o
 
 ifeq ($(EXTERNAL_LIBS),shared)
   TARGET = ${libdir}/$(OUTLIB).${so_ext}
 else
   TARGET = ${libdir}/$(OUTLIB).a
+  FFLAGS+=-Dtuflowfv_external_wq_aed=tuflowfv_external_wq
 endif
 
 all: ${TARGET}
@@ -111,13 +121,13 @@ ${libdir}/${OUTLIB}.a: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
 	ranlib $@
 
 ${libdir}/${OUTLIB}.${so_ext}: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
-	$(CC) ${SHARED} -o $@.${VERS} ${OBJECTS} ${LDFLAGS} ${SOFLAGS}
+	$(FC) ${SHARED} -o $@.${VERS} ${OBJECTS} ${LDFLAGS} ${SOFLAGS}
 	ln -sf ${OUTLIB}.${so_ext}.${VERS} $@
 
 ${objdir}/%.o: ${srcdir}/%.F90 ${AEDWATDIR}/include/aed.h
 	$(F90) ${FFLAGS} ${INCLUDES} -g -c $< -o $@
 
-${objdir}/tuflowfv_external_wq.o: tuflowfv_external_wq/tuflowfv_external_wq.f90
+${objdir}/tuflowfv_external_wq_aed.o: tuflowfv_external_wq/tuflowfv_external_wq_aed.F90
 	$(FC) ${FFLAGS} ${TFFLAGS} ${INCLUDES} -Ituflowfv_external_wq -c $< -o $@
 
 ${objdir}:
