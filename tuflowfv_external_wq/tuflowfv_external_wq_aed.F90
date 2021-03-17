@@ -17,7 +17,6 @@ PUBLIC :: fvwq_ctrl_external, fvwq_external
 
 ! MODULE TYPE DEFINITIONS
 TYPE,EXTENDS(fvwq_ctrl_class) :: fvwq_ctrl_external
-    LOGICAL :: activated
     CHARACTER(LEN=30),ALLOCATABLE,DIMENSION(:) :: var_names     ! WQ PELAGIC CONSTITUENT NAMES
     CHARACTER(LEN=30),ALLOCATABLE,DIMENSION(:) :: ben_names     ! WQ BENTHIC CONSTITUENT NAMES
     CHARACTER(LEN=30),ALLOCATABLE,DIMENSION(:) :: diag_names    ! WQ DIAGNOSTIC VARIABLE NAMES
@@ -120,7 +119,7 @@ CHARACTER(LEN=*),INTENT(OUT) :: errmsg
 ! AED nmls have already been processed during fvwq_ctrl_check
 ! No further construction of aed_ctrl required
 errstat = 0; errmsg = ''
-ctrl%activated = .TRUE.
+ctrl%isActivated = .TRUE.
 
 END SUBROUTINE fvwq_ctrl_construct_external
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -135,7 +134,7 @@ INTEGER :: tmpstat
 
 errstat = 0; errmsg = ''
 DEALLOCATE(ctrl%var_names,ctrl%ben_names,ctrl%diag_names, STAT=tmpstat)
-ctrl%activated = .FALSE.
+ctrl%isActivated = .FALSE.
 
 END SUBROUTINE fvwq_ctrl_destruct_external
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
