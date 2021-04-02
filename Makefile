@@ -107,8 +107,8 @@ ifeq ($(EXTERNAL_LIBS),shared)
   TARGET = ${libdir}/$(OUTLIB).${so_ext}
 else
   TARGET = ${libdir}/$(OUTLIB).a
-  FFLAGS+=-Dtuflowfv_external_wq_aed=tuflowfv_external_wq
 endif
+FFLAGS+=-Dtuflowfv_external_wq_aed=tuflowfv_external_wq
 
 all: ${TARGET}
 
