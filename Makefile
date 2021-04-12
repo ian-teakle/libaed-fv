@@ -63,11 +63,15 @@ ifneq ($(AEDBENDIR),)
   LIBBENAED=aed-benthic
   LIBS += -L${AEDBENDIR}/lib -l${LIBBENAED}
   SOFLAGS+=${AEDBENDIR}/lib/lib${LIBBENAED}.a
+else
+  EXTFLAG+=-DNO_BEN
 endif
 ifneq ($(AEDRIPDIR),)
   LIBRIPAED=aed-riparian
   LIBS += -L${AEDRIPDIR}/lib -l${LIBBENAED}
   SOFLAGS+=${AEDRIPDIR}/lib/lib${LIBRIPAED}.a
+else
+  EXTFLAG+=-DNO_RIPARIAN
 endif
 ifneq ($(AEDDMODIR),)
   LIBDMOAED=aed-demo
@@ -116,7 +120,7 @@ ${libdir}/lib${LIBAEDFV}.a: ${objdir} ${moddir} ${libdir} ${FVOBJECTS}
 	ar -rv $@ ${FVOBJECTS}
 	ranlib $@
 
-${libdir}/${OUTLIB}.a: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
+${libdir}/${OUTLIB}.a: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS} ${objdir}/tuflowfv_external_wq_aed.o
 	# ar -rv $@ ${OBJECTS}
 	# The old way built just the fv library and require the linking of dependant
 	#  aed libs at final link stage.  This ugly haque combines the necessary aed libs
@@ -146,6 +150,9 @@ ${objdir}/%.o: ${srcdir}/%.F90 ${AEDWATDIR}/include/aed.h
 
 ${objdir}/tuflowfv_external_wq_aed.o: tuflowfv_external_wq/tuflowfv_external_wq_aed.F90
 	$(FC) ${FFLAGS} ${TFFLAGS} ${INCLUDES} -Ituflowfv_external_wq -c $< -o $@
+
+${objdir}/aed_external.o: $(AEDWATDIR)/${srcdir}/aed_external.F90 ${objdir}/aed_core.o ${incdir}/aed.h
+	$(F90) $(FFLAGS) $(EXTFLAG) -g -c $< -o $@
 
 ${objdir}:
 	@mkdir ${objdir}

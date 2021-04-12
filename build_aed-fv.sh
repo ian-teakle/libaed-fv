@@ -4,6 +4,7 @@ export EXTERNAL_LIBS=shared
 export SINGLE=false
 export PRECISION=1
 export DEBUG=false
+export HAVEPLUS=false
 
 while [ $# -gt 0 ] ; do
   case $1 in
@@ -15,6 +16,9 @@ while [ $# -gt 0 ] ; do
       ;;
     --single)
       export SINGLE=true
+      ;;
+    --have-plus)
+      export HAVEPLUS=true
       ;;
     --no-ben)
       export NO_BEN=true
@@ -36,6 +40,20 @@ export CURDIR=`pwd`
 export DAEDWATDIR=${CURDIR}/../libaed-water
 export DAEDBENDIR=${CURDIR}/../libaed-benthic
 export DAEDDMODIR=${CURDIR}/../libaed-demo
+
+if [ "$HAVEPLUS" = "true" ] ; then
+  export DAEDRIPDIR=${CURDIR}/../libaed-riparian
+  if [ ! -d ${DAEDRIPDIR} ] ; then
+    export NO_RIPARIAN=true
+  fi
+  export DAEDDEVDIR=${CURDIR}/../libaed-dev
+  if [ ! -d ${DAEDDEVDIR} ] ; then
+    export NO_DEV=true
+  fi
+else
+  export NO_RIPARIAN=true
+  export NO_DEV=true
+fi
 
 if [ ! -d ${DAEDDMODIR} ] ; then
   export NO_DEMO=true
