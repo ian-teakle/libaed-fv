@@ -39,9 +39,6 @@ ifeq ($(F90),ifort)
     FFLAGS+=-check
   endif
   FFLAGS+=-real-size 64
-  LIBS+=-lifcore -lsvml
-  LIBS+=-limf -lintlc
-  LIBS+=-L/opt/intel/lib -Wl,-rpath=/opt/intel/lib
 else ifeq ($(F90),flang)
   INCLUDES+=-I../flang_extra/mod
   DEBUG_FFLAGS=-g
@@ -56,35 +53,29 @@ endif
 FFLAGS+=-fPIC
 
 LIBWATAED=aed-water
-LIBS += -L${AEDWATDIR}/lib -l${LIBWATAED}
 SOFLAGS = ${libdir}/lib${LIBAEDFV}.a ${AEDWATDIR}/lib/lib${LIBWATAED}.a
 
+EXTFLAG=
 ifneq ($(AEDBENDIR),)
   LIBBENAED=aed-benthic
-  LIBS += -L${AEDBENDIR}/lib -l${LIBBENAED}
   SOFLAGS+=${AEDBENDIR}/lib/lib${LIBBENAED}.a
-else
-  EXTFLAG+=-DNO_BEN
 endif
 ifneq ($(AEDRIPDIR),)
   LIBRIPAED=aed-riparian
-  LIBS += -L${AEDRIPDIR}/lib -l${LIBBENAED}
   SOFLAGS+=${AEDRIPDIR}/lib/lib${LIBRIPAED}.a
 else
   EXTFLAG+=-DNO_RIPARIAN
 endif
 ifneq ($(AEDDMODIR),)
   LIBDMOAED=aed-demo
-  LIBS += -L${AEDDMODIR}/lib -l${LIBDMOAED}
   SOFLAGS+=${AEDDMODIR}/lib/lib${LIBDMOAED}.a
 endif
 ifneq ($(AEDDEVDIR),)
   LIBDEVAED=aed-dev
-  LIBS += -L${AEDDEVAIR}/lib -l${LIBDEVAED}
   SOFLAGS+=${AEDDEVDIR}/lib/lib${LIBDEVAED}.a
+else
+  EXTFLAG+=-DNO_DEV
 endif
-
-LIBS+=-lnetcdff -lnetcdf
 
 FFLAGS+=$(OPT_FFLAGS)
 
@@ -105,7 +96,7 @@ INCLUDES += -I${moddir}
 
 
 FVOBJECTS=${objdir}/fv_zones.o ${objdir}/fv_aed.o
-OBJECTS=${objdir}/tuflowfv_external_wq_aed.o
+OBJECTS=${objdir}/tuflowfv_external_wq_aed.o ${objdir}/aed_external.o
 
 ifeq ($(EXTERNAL_LIBS),shared)
   TARGET = ${libdir}/$(OUTLIB).${so_ext}
@@ -120,7 +111,7 @@ ${libdir}/lib${LIBAEDFV}.a: ${objdir} ${moddir} ${libdir} ${FVOBJECTS}
 	ar -rv $@ ${FVOBJECTS}
 	ranlib $@
 
-${libdir}/${OUTLIB}.a: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS} ${objdir}/tuflowfv_external_wq_aed.o
+${libdir}/${OUTLIB}.a: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
 	# ar -rv $@ ${OBJECTS}
 	# The old way built just the fv library and require the linking of dependant
 	#  aed libs at final link stage.  This ugly haque combines the necessary aed libs
@@ -151,8 +142,8 @@ ${objdir}/%.o: ${srcdir}/%.F90 ${AEDWATDIR}/include/aed.h
 ${objdir}/tuflowfv_external_wq_aed.o: tuflowfv_external_wq/tuflowfv_external_wq_aed.F90
 	$(FC) ${FFLAGS} ${TFFLAGS} ${INCLUDES} -Ituflowfv_external_wq -c $< -o $@
 
-${objdir}/aed_external.o: $(AEDWATDIR)/${srcdir}/aed_external.F90 ${objdir}/aed_core.o ${incdir}/aed.h
-	$(F90) $(FFLAGS) $(EXTFLAG) -g -c $< -o $@
+${objdir}/aed_external.o: $(AEDWATDIR)/${srcdir}/aed_external.F90
+	$(F90) $(FFLAGS) $(EXTFLAG) ${INCLUDES} -g -c $< -o $@
 
 ${objdir}:
 	@mkdir ${objdir}
