@@ -113,11 +113,28 @@ FFLAGS+=-Dtuflowfv_external_wq_aed=tuflowfv_external_wq
 all: ${TARGET}
 
 ${libdir}/lib${LIBAEDFV}.a: ${objdir} ${moddir} ${libdir} ${FVOBJECTS}
-	ar -rv $@ ${FVOBJECTS} ${LDFLAGS}
+	ar -rv $@ ${FVOBJECTS}
 	ranlib $@
 
 ${libdir}/${OUTLIB}.a: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
-	ar -rv $@ ${OBJECTS} ${LDFLAGS}
+	# ar -rv $@ ${OBJECTS}
+	# The old way built just the fv library and require the linking of dependant
+	#  aed libs at final link stage.  This ugly haque combines the necessary aed libs
+	#  into the external wq lib so there is less change to the tfv makefile
+	( cd ${objdir} ; ar -x ${AEDWATDIR}/lib/lib${LIBWATAED}.a )
+ifneq ($(AEDBENDIR),)
+	( cd ${objdir} ; ar -x ${AEDBENDIR}/lib/lib${LIBBENAED}.a )
+endif
+ifneq ($(AEDRIPDIR),)
+	( cd ${objdir} ; ar -x ${AEDRIPDIR}/lib/lib${LIBRIPAED}.a )
+endif
+ifneq ($(AEDDMODIR),)
+	( cd ${objdir} ; ar -x ${AEDDMODIR}/lib/lib${LIBDMOAED}.a )
+endif
+ifneq ($(AEDDEVDIR),)
+	( cd ${objdir} ; ar -x ${AEDDEVDIR}/lib/lib${LIBDEVAED}.a )
+endif
+	( cd ${objdir} ; ar -rv ../$@ *.o )
 	ranlib $@
 
 ${libdir}/${OUTLIB}.${so_ext}: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
