@@ -17,8 +17,11 @@ while [ $# -gt 0 ] ; do
     --single)
       export SINGLE=true
       ;;
-    --have-plus)
+    --have-plus|--haveplus)
       export HAVEPLUS=true
+      ;;
+    --static)
+      export EXTERNAL_LIBS=static
       ;;
     --no-ben)
       export NO_BEN=true
@@ -82,10 +85,10 @@ export F77=$FC
 export F90=$FC
 export F95=$FC
 
+export PARAMS="AEDWATDIR=${DAEDWATDIR}"
 cd ${DAEDWATDIR}
 echo making in ${DAEDWATDIR}
 make || exit 1
-export PARAMS=""
 if [ "${NO_BEN}" != "true" ] ; then
    cd ${DAEDBENDIR}
    echo making in ${DAEDBENDIR}
@@ -97,6 +100,16 @@ if [ "${NO_DEMO}" != "true" ] ; then
    echo making in ${DAEDDMODIR}
    make || exit 1
    export PARAMS="${PARAMS} AEDDMODIR=${DAEDDMODIR}"
+fi
+if [ "$HAVEPLUS" = "true" ] ; then
+   cd ${DAEDRIPDIR}
+   echo making in ${DAEDRIPDIR}
+   make || exit 1
+   export PARAMS="${PARAMS} AEDRIPDIR=${DAEDRIPDIR}"
+   cd ${DAEDDEVDIR}
+   echo making in ${DAEDDEVDIR}
+   make || exit 1
+   export PARAMS="${PARAMS} AEDDEVDIR=${DAEDDEVDIR}"
 fi
 cd ${CURDIR}
 #make distclean
