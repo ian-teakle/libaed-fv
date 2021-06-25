@@ -36,7 +36,7 @@ ifeq ($(F90),ifort)
   OPT_FFLAGS=-O3 -qopenmp
   FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -warn nounused $(DEFINES)
   ifeq ($(WITH_CHECKS),true)
-    FFLAGS+=-check
+    FFLAGS+=-check all -check noarg_temp_created
   endif
   FFLAGS+=-real-size 64
 else ifeq ($(F90),flang)

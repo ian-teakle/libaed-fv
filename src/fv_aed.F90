@@ -994,8 +994,8 @@ SUBROUTINE calculate_fluxes(column, count, flux_pel, flux_atm, flux_ben, flux_ri
    TYPE (aed_column_t), INTENT(inout) :: column(:)
    INTEGER, INTENT(in) :: count
    AED_REAL, INTENT(inout) :: flux_pel(:,:) !# (n_vars, n_layers)
-   AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars)
-   AED_REAL, INTENT(inout) :: flux_ben(:)   !# (n_vars)
+   AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars+n_ben)
+   AED_REAL, INTENT(inout) :: flux_ben(:)   !# (n_vars+n_ben)
    AED_REAL, INTENT(inout) :: flux_rip(:)   !# (n_vars)
    AED_REAL, INTENT(inout) :: h(:)          !# (n_layers)
 !
@@ -1013,7 +1013,7 @@ SUBROUTINE calculate_fluxes(column, count, flux_pel, flux_atm, flux_ben, flux_ri
 
    !# Distribute the fluxes into pelagic surface layer
    IF ( do_2d_atm_flux .OR. count > 1 ) &
-      flux_pel(:,1) = flux_pel(:,1) + flux_atm(:)/h(1)
+      flux_pel(:,1) = flux_pel(:,1) + flux_atm(1:n_vars)/h(1)
 
    IF ( .NOT. do_zone_averaging ) THEN
       !# Calculate temporal derivatives due to benthic exchange processes.
