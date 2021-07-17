@@ -664,8 +664,8 @@ SUBROUTINE set_env_aed_models(dt_,              &
                                longwave_,        &
                                wnd_,             &
                                rain_,            &
-                               air_temp_,        &
                                humidity_,        &
+                               air_temp_,        &
                                ustar_bed_,       &
                                ustar_surf_,      &
                                wv_uorb_,         &

@@ -96,7 +96,7 @@ SUBROUTINE init_zones(nCols, mat_id, n_aed_vars, n_vars, n_vars_ben)
 !-------------------------------------------------------------------------------
 !BEGIN
    ALLOCATE(mat_t(nCols)) ; ALLOCATE(zm(nCols))
-   mat_t = 0.   ; zm = 0.
+   mat_t = 0   ; zm = 0 ; zon = 1
    !# The new form of zones
    cType = mat_id(1,1) ; nTypes = 1 ; mat_t(nTypes) = mat_id(1,1)
    DO col=1, ubound(mat_id,2)
@@ -204,6 +204,7 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, area, wnd, rho,       &
       zon = zm(col)
 ! if (zone(zon) == 11) &
 ! print*,"ZoneIDX ",zon," zone = ",zone(zon)," Col ",col," area col ",area(col),"TEMP ",temp(col)," is ",active(col)
+
       IF (.NOT. active(col)) CYCLE
 
       zone_area(zon)     = zone_area(zon) + area(col)
