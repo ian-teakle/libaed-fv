@@ -279,11 +279,12 @@ END SUBROUTINE calc_zone_areas
 
 
 !###############################################################################
-SUBROUTINE copy_to_zone(nCols, cc, area, active, benth_map)
+SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in)  :: nCols
    AED_REAL,INTENT(in) :: cc(:,:)       !# (n_vars, n_layers)
+   AED_REAL,INTENT(in) :: cc_diag(:,:)       !# (n_vars, n_layers)
    AED_REAL,DIMENSION(:),INTENT(in) :: area
    LOGICAL,DIMENSION(:), INTENT(in) :: active
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
@@ -300,18 +301,22 @@ SUBROUTINE copy_to_zone(nCols, cc, area, active, benth_map)
       bot = benth_map(col)
       zon = zm(col)
 
-      zone_cc(1:nwq_var,zon) = zone_cc(1:nwq_var,zon) + (cc(1:nwq_var,bot) * area(col) / zone_area(zon))
+!     zone_cc(1:nwq_var,zon) = zone_cc(1:nwq_var,zon) + (cc(1:nwq_var,bot) * area(col) / zone_area(zon))
+      zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + &
+                         (cc(1:nwq_var+nben_var,bot) * area(col) / zone_area(zon))
+      zone_cc_diag(:,zon) = cc_diag(:,bot)
    ENDDO
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 !###############################################################################
-SUBROUTINE copy_from_zone(nCols, cc, area, active, benth_map)
+SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in)     :: nCols
    AED_REAL,INTENT(inout) :: cc(:,:)       !# (n_vars, n_layers)
+   AED_REAL,INTENT(out) :: cc_diag(:,:)       !# (n_vars, n_layers)
    AED_REAL,DIMENSION(:),INTENT(in) :: area
    LOGICAL,DIMENSION(:), INTENT(in) :: active
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
@@ -328,7 +333,11 @@ SUBROUTINE copy_from_zone(nCols, cc, area, active, benth_map)
       zon = zm(col)
 
       cc(nwq_var+1:nwq_var+nben_var,bot) = zone_cc(nwq_var+1:nwq_var+nben_var,zon)
+      cc_diag(:,bot) = zone_cc_diag(:,zon)
    ENDDO
+!  DO col=1, nZones
+!     print *,"zone ", col, " flux 1 = ",zone_cc(1, col), " diag = ",zone_cc_diag(1,col)
+!  ENDDO
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

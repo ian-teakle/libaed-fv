@@ -1277,7 +1277,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
 !!$OMP END DO
 
    IF ( do_zone_averaging ) THEN
-      CALL copy_to_zone(nCols, cc, area, active, benth_map)
+      CALL copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
       CALL compute_zone_benthic_fluxes(n_aed_vars, dt)
    ENDIF
 
@@ -1388,7 +1388,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
 !!$OMP END DO
 
    IF ( do_zone_averaging ) &
-      CALL copy_from_zone(nCols, cc, area, active, benth_map)
+      CALL copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
 
    IF ( ThisStep >= n_equil_substep ) ThisStep = 0
 
