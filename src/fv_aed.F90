@@ -31,7 +31,7 @@
 
 #include "aed.h"
 
-#define FV_AED_VERS "1.3.2"
+#define FV_AED_VERS "1.4.0a"
 
 #ifndef DEBUG
 #define DEBUG      0
@@ -82,18 +82,12 @@ MODULE fv_aed
    !# Module Data
 
    AED_REAL :: Kw, Ksed
-   INTEGER  :: solution_method
 
    !# Main arrays storing/pointing to the state and diagnostic variables
    AED_REAL,DIMENSION(:,:),POINTER :: cc, cc_diag
 
 !  !# Array pointing to the lagrangian particle masses and diagnostic properties
 !  AED_REAL,DIMENSION(:,:),POINTER :: pp, pp_diag
-
-   !# Name of files being used to load initial values for benthic
-   !  or benthic_diag vars, and the horizontal routing table for riparian flows
-   CHARACTER(len=128) :: init_values_file = ''
-   CHARACTER(len=128) :: route_table_file = ''
 
    !# Maps of surface, bottom and wet/dry (active) cells
    INTEGER,DIMENSION(:),POINTER :: surf_map, benth_map
@@ -135,26 +129,56 @@ MODULE fv_aed
    TYPE(partgroup),DIMENSION(:),POINTER :: particle_groups
    TYPE(partgroup_cell),DIMENSION(:),ALLOCATABLE :: all_particles
 
+   !# Misc variables/options
+   LOGICAL  :: old_zones = .TRUE.
+   LOGICAL  :: request_nearest = .FALSE.
+   LOGICAL  :: reinited = .FALSE.
+   INTEGER  :: ThisStep = 0
+   INTEGER  :: n_cellids = 0
+
+!  %% NAMELIST   %%  /aed_bio/
+   INTEGER  :: solution_method = 1
+
+   CHARACTER(len=128) :: aed_nml_file = 'aed.nml'
+
+   !# Switches for configuring model operation and active links with the host model
+   LOGICAL  :: link_bottom_drag = .FALSE.
+   LOGICAL  :: link_surface_drag = .FALSE.
+   LOGICAL  :: link_water_density = .FALSE.
+   LOGICAL  :: link_water_clarity = .FALSE.
+   LOGICAL  :: link_ext_par = .FALSE.
+   AED_REAL :: base_par_extinction = 0.1
+   LOGICAL  :: ext_tss_extinction = .FALSE.
+   AED_REAL :: tss_par_extinction = 0.2
+   LOGICAL  :: do_particle_bgc = .FALSE.
+   LOGICAL  :: do_2d_atm_flux = .TRUE.
+
+   LOGICAL  :: do_zone_averaging = .FALSE.
+   LOGICAL  :: link_solar_shade = .TRUE.
+   LOGICAL  :: link_rain_loss = .FALSE.
+
+   !# Name of files being used to load initial values for benthic
+   !  or benthic_diag vars, and the horizontal routing table for riparian flows
+   CHARACTER(len=128) :: init_values_file = ''
+
+   LOGICAL  :: do_limiter = .FALSE.
+
    !# maximum single precision real is 2**128 = 3.4e38
    AED_REAL :: glob_min = -1.0e38
    AED_REAL :: glob_max =  1.0e38
+   LOGICAL  :: no_glob_lim = .FALSE.
 
-   !# Misc variables/options
+   CHARACTER(len=128) :: route_table_file = ''
+
    AED_REAL :: min_water_depth =  0.0401
-   AED_REAL :: wave_factor =  1.0
-   LOGICAL  :: old_zones = .TRUE.
-   LOGICAL  :: do_zone_averaging = .FALSE.
-   LOGICAL  :: request_nearest = .FALSE.
-   LOGICAL  :: reinited = .FALSE.
-   INTEGER  :: ThisStep = 0, n_equil_substep = 1
+   INTEGER  :: n_equil_substep = 1
 
-   !# Switches for configuring model operation and active links with the host model
-   LOGICAL :: link_water_clarity, link_water_density, &
-              link_bottom_drag, link_surface_drag, &
-              link_ext_par, ext_tss_extinction, &
-              link_solar_shade, link_rain_loss, &
-              do_limiter, no_glob_lim, do_2d_atm_flux, do_particle_bgc, &
-              link_wave_stress, display_minmax
+   LOGICAL  :: link_wave_stress = .FALSE.
+   AED_REAL :: wave_factor =  1.0
+
+   LOGICAL  :: display_minmax = .FALSE.
+   INTEGER  :: display_cellid(10) = -99
+!  %% END NAMELIST   %%  /aed_bio/
 
    !# Integers storing number of variables being simulated
    INTEGER :: n_aed_vars, n_vars, n_vars_ben, n_vars_diag, n_vars_diag_sheet
@@ -180,24 +204,26 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
 !
 !LOCALS
    TYPE(aed_variable_t),POINTER :: tvar
-   CHARACTER(len=128)            :: aed_nml_file
-   CHARACTER(len=128)            :: tname
-   AED_REAL                      :: base_par_extinction, tss_par_extinction
-   INTEGER                       :: status, n_sd, i, j
+   CHARACTER(len=128)           :: tname
+   INTEGER                      :: status, n_sd, i, j
 
+!  %% NAMELIST   %%  /aed_models/
    CHARACTER(len=64) :: models(64)
+!  %% END NAMELIST   %%  /aed_models/
+
    NAMELIST /aed_models/ models
 
-   NAMELIST /aed_bio/ solution_method, link_bottom_drag,                       &
-                       link_surface_drag, link_water_density,                  &
-                       link_water_clarity, aed_nml_file,                       &
-                       link_ext_par, base_par_extinction,                      &
-                       ext_tss_extinction, tss_par_extinction,                 &
-                       do_particle_bgc, do_2d_atm_flux, do_zone_averaging,     &
-                       link_solar_shade, link_rain_loss, init_values_file,     &
-                       do_limiter, glob_min, glob_max, no_glob_lim,            &
-                       route_table_file, n_equil_substep, min_water_depth,     &
-                       link_wave_stress, wave_factor, display_minmax
+   NAMELIST /aed_bio/ solution_method, aed_nml_file, link_bottom_drag,         &
+                      link_surface_drag, link_water_density,                   &
+                      link_water_clarity,                                      &
+                      link_ext_par, base_par_extinction,                       &
+                      ext_tss_extinction, tss_par_extinction,                  &
+                      do_particle_bgc, do_2d_atm_flux, do_zone_averaging,      &
+                      link_solar_shade, link_rain_loss, init_values_file,      &
+                      do_limiter, glob_min, glob_max, no_glob_lim,             &
+                      route_table_file, n_equil_substep, min_water_depth,      &
+                      link_wave_stress, wave_factor, display_minmax,           &
+                      display_cellid
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -224,6 +250,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    min_water_depth = 0.0401
    link_wave_stress = .false.
    display_minmax = .false.
+   display_cellid = -99
 
    ! Process input file (aed.nml) to get run options
    print *, "    initialise aed_core "
@@ -302,6 +329,10 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
       IF ( aed_get_var(i, tvar) ) THEN
          IF ( .NOT. (tvar%sheet .OR. tvar%diag .OR. tvar%extern) ) THEN
             j = j + 1
+            IF ( j > nwq_var ) THEN
+                print*, " ERROR - finding more variables than reported"
+                EXIT
+            ENDIF
             names(j) = TRIM(tvar%name)
             min_(j) = tvar%minimum
             max_(j) = tvar%maximum
@@ -315,6 +346,10 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
       IF ( aed_get_var(i, tvar) ) THEN
          IF ( tvar%sheet .AND. .NOT. (tvar%diag .OR. tvar%extern) ) THEN
             j = j + 1
+            IF ( j > nwq_var ) THEN
+                print*, " ERROR - finding more benthic variables than reported"
+                EXIT
+            ENDIF
             bennames(j) = TRIM(tvar%name)
             min_(nwq_var+j) = tvar%minimum
             max_(nwq_var+j) = tvar%maximum
@@ -328,6 +363,10 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
       IF ( aed_get_var(i, tvar) ) THEN
          IF ( tvar%diag ) THEN
             j = j + 1
+            IF ( j > ndiag_var+n_sd ) THEN
+                print*, " ERROR - finding more diagnostic variables than reported"
+                EXIT
+            ENDIF
             diagnames(j) = TRIM(tvar%name)
             print *,"     D(",j,") AED diagnostic variable:  ", TRIM(diagnames(j))
          ENDIF
@@ -335,6 +374,14 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    ENDDO
 
    CLOSE(namlst)
+
+   DO i=1,10
+     IF ( display_cellid(i) /= -99 ) THEN
+         n_cellids = n_cellids + 1
+     ELSE
+         EXIT
+     ENDIF
+   ENDDO
 END SUBROUTINE init_aed_models
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1175,13 +1222,9 @@ SUBROUTINE do_aed_models(nCells, nCols)
          stat = particle_groups(grp)%id_stat  ! should be 1
          idx3d = particle_groups(grp)%id_i3   ! should be 3
          DO prt=1,particle_groups(grp)%NP
-!print*,"stat = ",stat," prt = ",prt, " num prt = ",particle_groups(grp)%NP
-!print*,"grp = ", grp, " num grp = ", num_groups, " idx3d = ",idx3d
-!if (.not.associated(particle_groups(grp)%istat)) print*,"istat doesn't exist"
             IF ( particle_groups(grp)%istat(stat, prt) >= 0 ) THEN
                i = particle_groups(grp)%istat(idx3d, prt)
                IF ( i >= 1 .AND. i <= size(all_particles) ) THEN
-!print*,"found particle at ",i
                   all_particles(i)%count = all_particles(i)%count + 1
 !              ELSE
 !                 print*,"idx out of range", i, size(all_particles)
@@ -1398,16 +1441,41 @@ SUBROUTINE do_aed_models(nCells, nCols)
          IF ( aed_get_var(i, tv) ) THEN
             IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
                v = v + 1
-               WRITE(*,'(1X,"VarLims: ",I0,1X,"<=> ",f15.8,f15.8," : ",A)')v,MINVAL(cc(v,:)),MAXVAL(cc(v,:)),TRIM(tv%name)
+               WRITE(*,'(1X,"VarLims: ",I0,1X,"<=> ",f15.8,f15.8," : ",A)') &
+                                          v,MINVAL(cc(v,:)),MAXVAL(cc(v,:)),TRIM(tv%name)
                !print *,'VarLims',v,TRIM(tv%name),MINVAL(cc(v,:)),MAXVAL(cc(v,:))
             ELSE IF ( tv%diag .AND. .NOT. no_glob_lim ) THEN
                d = d + 1
-               WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ",A)')d,MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:)),TRIM(tv%name)
+               WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ",A)') &
+                                          d,MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:)),TRIM(tv%name)
                !print *,'DiagLim',d,TRIM(tv%name),MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:))
             ENDIF
          ENDIF
       ENDDO
-    ENDIF
+   ENDIF
+
+   IF ( n_cellids > 0 ) THEN
+      v = 0; d = 0
+      DO i=1,n_aed_vars
+         IF ( aed_get_var(i, tv) ) THEN
+            IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
+               v = v + 1
+            ELSE IF ( tv%diag .AND. .NOT. no_glob_lim ) THEN
+               d = d + 1
+            ENDIF
+            DO j = 1, n_cellids
+               lev = display_cellid(j)
+               IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
+                  WRITE(*,'(1X,"Var: ",I0,1X,"<=> ",f15.8,f15.8," : ",A, " cell: ",f15.8)') &
+                              v,MINVAL(cc(v,:)),MAXVAL(cc(v,:)),TRIM(tv%name), cc(v,lev)
+               ELSE IF ( tv%diag .AND. .NOT. no_glob_lim ) THEN
+                  WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ", A, " cell: ",f15.8)') &
+                              d,MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:)),TRIM(tv%name), cc_diag(d,lev)
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO  ! cellids
+   ENDIF
 
     print *,"    Finished AED step"
 

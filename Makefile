@@ -3,7 +3,6 @@
 # with hydrodynamic driver wrapper
 #
 
-VERS=3.0.0
 
 objdir=obj
 srcdir=src
@@ -24,16 +23,18 @@ OUTLIB=libtuflowfv_external_wq
 
 ifeq ($(OSTYPE),Darwin)
   SHARED=-dynamiclib -undefined dynamic_lookup
+  OMPFLAG=-fopenmp
   so_ext=dylib
 else
   SHARED=-shared
+  OMPFLAG=-qopenmp
   so_ext=so
 endif
 
 ifeq ($(F90),ifort)
   INCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback
-  OPT_FFLAGS=-O3 -qopenmp
+  OPT_FFLAGS=-O3 ${OMPFLAG}
   FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -warn nounused $(DEFINES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check all -check noarg_temp_created
