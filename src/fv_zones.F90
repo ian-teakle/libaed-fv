@@ -284,28 +284,53 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
 !ARGUMENTS
    INTEGER,INTENT(in)  :: nCols
    AED_REAL,INTENT(in) :: cc(:,:)       !# (n_vars, n_layers)
-   AED_REAL,INTENT(in) :: cc_diag(:,:)       !# (n_vars, n_layers)
+   AED_REAL,INTENT(in) :: cc_diag(:,:)  !# (n_vars, n_layers)
    AED_REAL,DIMENSION(:),INTENT(in) :: area
    LOGICAL,DIMENSION(:), INTENT(in) :: active
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
 !
 !LOCALS
    INTEGER :: col, zon, bot
+   AED_REAL :: ta(nwq_var+nben_var)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   zone_cc(1:nwq_var,:) = zero_
-   DO col=1, nCols
-      IF (.NOT. active(col)) CYCLE
+   zone_cc = zero_
 
-      bot = benth_map(col)
-      zon = zm(col)
+   DO zon=1,nZones
+      ta = 0.
+      DO col=1, nCols
+         IF (.NOT. active(col)) CYCLE
+         IF ( zon == zm(col) ) THEN
+            bot = benth_map(col)
+            ta = ta + (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
+      !     zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
+         ENDIF
+      ENDDO
+      zone_cc(1:nwq_var+nben_var,zon) = ta
 
-!     zone_cc(1:nwq_var,zon) = zone_cc(1:nwq_var,zon) + (cc(1:nwq_var,bot) * area(col) / zone_area(zon))
-      zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + &
-                         (cc(1:nwq_var+nben_var,bot) * area(col) / zone_area(zon))
-      zone_cc_diag(:,zon) = cc_diag(:,bot)
+      DO col=1, nCols
+         IF (.NOT. active(col)) CYCLE
+         IF ( zon == zm(col) ) THEN
+            bot = benth_map(col)
+            zone_cc_diag(:,zon) = cc_diag(:,bot)
+            exit
+         ENDIF
+      ENDDO
    ENDDO
+
+!  print*,"copy to zone :"
+!  DO zon=1,nZones
+!     tmp = 0.
+!     DO col=1, nCols
+!        IF (.NOT. active(col)) CYCLE
+!        IF ( zon == zm(col) ) THEN
+!           bot = benth_map(col)
+!           print*,"zonish",zone_cc(3,zon), "orig",cc(3,bot), zon
+!           exit
+!        ENDIF
+!     ENDDO
+!  ENDDO
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -316,7 +341,7 @@ SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
 !ARGUMENTS
    INTEGER,INTENT(in)     :: nCols
    AED_REAL,INTENT(inout) :: cc(:,:)       !# (n_vars, n_layers)
-   AED_REAL,INTENT(out) :: cc_diag(:,:)       !# (n_vars, n_layers)
+   AED_REAL,INTENT(out) :: cc_diag(:,:)    !# (n_vars, n_layers)
    AED_REAL,DIMENSION(:),INTENT(in) :: area
    LOGICAL,DIMENSION(:), INTENT(in) :: active
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
@@ -332,11 +357,30 @@ SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
       bot = benth_map(col)
       zon = zm(col)
 
-      cc(nwq_var+1:nwq_var+nben_var,bot) = zone_cc(nwq_var+1:nwq_var+nben_var,zon)
-      cc_diag(:,bot) = zone_cc_diag(:,zon)
+      cc(1:nwq_var+nben_var,bot) = zone_cc(1:nwq_var+nben_var,zon)
+   !  cc_diag(:,bot) = zone_cc_diag(:,zon)
    ENDDO
-!  DO col=1, nZones
-!     print *,"zone ", col, " flux 1 = ",zone_cc(1, col), " diag = ",zone_cc_diag(1,col)
+   DO zon=1,nZones
+      DO col=1, nCols
+         IF (.NOT. active(col)) CYCLE
+         IF ( zon == zm(col) ) THEN
+            bot = benth_map(col)
+            cc_diag(:,bot) = zone_cc_diag(:,zon)
+            exit
+         ENDIF
+      ENDDO
+   ENDDO
+
+!  print*,"copy from zone :"
+!  DO zon=1,nZones
+!     DO col=1, nCols
+!        IF (.NOT. active(col)) CYCLE
+!        IF ( zon == zm(col) ) THEN
+!           bot = benth_map(col)
+!           print*,"zonish", zone_cc(3,zon), "orig", cc(3,bot), zon
+!           exit
+!        ENDIF
+!     ENDDO
 !  ENDDO
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
