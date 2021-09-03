@@ -304,24 +304,16 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
          IF ( zon == zm(col) ) THEN
             bot = benth_map(col)
             ta = ta + (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
-      !     zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
+      !     zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + &
+      !               (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
+            zone_cc_diag(:,zon) = cc_diag(:,bot)
          ENDIF
       ENDDO
       zone_cc(1:nwq_var+nben_var,zon) = ta
-
-      DO col=1, nCols
-         IF (.NOT. active(col)) CYCLE
-         IF ( zon == zm(col) ) THEN
-            bot = benth_map(col)
-            zone_cc_diag(:,zon) = cc_diag(:,bot)
-            exit
-         ENDIF
-      ENDDO
    ENDDO
 
 !  print*,"copy to zone :"
 !  DO zon=1,nZones
-!     tmp = 0.
 !     DO col=1, nCols
 !        IF (.NOT. active(col)) CYCLE
 !        IF ( zon == zm(col) ) THEN
@@ -357,18 +349,10 @@ SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
       bot = benth_map(col)
       zon = zm(col)
 
-      cc(1:nwq_var+nben_var,bot) = zone_cc(1:nwq_var+nben_var,zon)
-   !  cc_diag(:,bot) = zone_cc_diag(:,zon)
-   ENDDO
-   DO zon=1,nZones
-      DO col=1, nCols
-         IF (.NOT. active(col)) CYCLE
-         IF ( zon == zm(col) ) THEN
-            bot = benth_map(col)
-            cc_diag(:,bot) = zone_cc_diag(:,zon)
-            exit
-         ENDIF
-      ENDDO
+      !# only want the benthic vars
+      cc(nwq_var+1:nwq_var+nben_var,bot) = zone_cc(nwq_var+1:nwq_var+nben_var,zon)
+   !  cc(1:nwq_var+nben_var,bot) = zone_cc(1:nwq_var+nben_var,zon)
+      cc_diag(:,bot) = zone_cc_diag(:,zon)
    ENDDO
 
 !  print*,"copy from zone :"
