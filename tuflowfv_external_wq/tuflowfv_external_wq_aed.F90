@@ -38,10 +38,10 @@ END TYPE
 
 ! MODULE PARAMETERS
 INTEGER,PARAMETER :: WQFileNum = 20
-!DEC$ IF DEFINED(linux) ! Linux
-  CHARACTER(LEN=1),PARAMETER :: slash = '/'
-!DEC$ ELSE ! Windows
+!DEC$ IF DEFINED(_WIN32) ! Windows
   CHARACTER(LEN=1),PARAMETER :: slash = '\'
+!DEC$ ELSE ! Linux or MacOS or ...
+  CHARACTER(LEN=1),PARAMETER :: slash = '/'
 !DEC$ END IF
 
 ! MODULE OBJECTS

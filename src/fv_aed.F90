@@ -256,7 +256,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    print *, "    initialise aed_core "
    IF ( aed_init_core(dname, .true.) /= 0 ) STOP "Initialisation of aed_core failed"
    CALL aed_print_version
-   tname = TRIM(dname)//'aed.nml'
+   tname = TRIM(dname)//TRIM(aed_nml_file)
    print *,"    reading fv_aed config from ",TRIM(tname)
    OPEN(namlst,file=tname,action='read',status='old',iostat=status)
    IF ( status /= 0 ) CALL STOPIT("Cannot open file " // TRIM(tname))

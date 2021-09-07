@@ -5,6 +5,7 @@
 *.so.*
 *.i90
 lib
+obj
 modules
 libaed2
 .*.swp
