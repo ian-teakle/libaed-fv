@@ -29,6 +29,7 @@
 #ifndef DEBUG
 #define DEBUG      0
 #endif
+#define ONLY_BEN   1
 
 !###############################################################################
 MODULE fv_zones
@@ -350,8 +351,11 @@ SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
       zon = zm(col)
 
       !# only want the benthic vars
+#if ONLY_BEN
       cc(nwq_var+1:nwq_var+nben_var,bot) = zone_cc(nwq_var+1:nwq_var+nben_var,zon)
-   !  cc(1:nwq_var+nben_var,bot) = zone_cc(1:nwq_var+nben_var,zon)
+#else
+      cc(1:nwq_var+nben_var,bot) = zone_cc(1:nwq_var+nben_var,zon)
+#endif
       cc_diag(:,bot) = zone_cc_diag(:,zon)
    ENDDO
 
@@ -475,10 +479,14 @@ SUBROUTINE compute_zone_benthic_fluxes(n_aed_vars, dt)
 !-------------------------------------------------------------------------------
 !BEGIN
    DO zon=1, nZones
-      CALL define_column_zone(column, zon, n_aed_vars)!, nwq_var)
+      CALL define_column_zone(column, zon, n_aed_vars)
 
       CALL aed_calculate_benthic(column, 1)
+#if ONLY_BEN
       DO v=nwq_var+1,nwq_var+nben_var
+#else
+      DO v=1,nwq_var+nben_var
+#endif
          zone_cc(v, zon) = zone_cc(v, zon) + dt*flux_benz(v, zon);
       ENDDO
    ENDDO
