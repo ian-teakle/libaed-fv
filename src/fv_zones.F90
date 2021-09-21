@@ -38,8 +38,8 @@ MODULE fv_zones
 
    IMPLICIT NONE
 
-   PUBLIC init_zones, calc_zone_areas, copy_to_zone, copy_from_zone
-   PUBLIC compute_zone_benthic_fluxes !, distribute_flux_from_zone
+   PUBLIC init_zones, calc_zone_areas, copy_to_zone  !, copy_from_zone
+   PUBLIC compute_zone_benthic_fluxes, zm, flux_pelz, flux_benz
 
    !#--------------------------------------------------------------------------#
    !# Module Data
@@ -67,11 +67,12 @@ MODULE fv_zones
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_bathy
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_I_0
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_longwave
-   AED_REAL,TARGET :: zone_taub
    INTEGER, DIMENSION(:),  ALLOCATABLE        :: zone_count, zm
 
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: flux_pelz
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: flux_benz
+
+   AED_REAL,TARGET :: zone_taub
 
    INTEGER :: nZones, nwq_var, nben_var
 
@@ -82,11 +83,12 @@ CONTAINS
 
 
 !###############################################################################
-SUBROUTINE init_zones(nCols, mat_id, n_aed_vars, n_vars, n_vars_ben)
+SUBROUTINE init_zones(nCols, mat_id, avg, n_aed_vars, n_vars, n_vars_ben)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in) :: nCols
    INTEGER,DIMENSION(:,:),INTENT(in) :: mat_id
+   LOGICAL,INTENT(in) :: avg
    INTEGER,INTENT(in) :: n_aed_vars, n_vars, n_vars_ben
 !
 !LOCALS
@@ -127,6 +129,8 @@ SUBROUTINE init_zones(nCols, mat_id, n_aed_vars, n_vars, n_vars_ben)
       zone(zon) = mat_t(zon)
    ENDDO
    DEALLOCATE(mat_t)
+
+   IF ( .NOT. avg ) RETURN
 
    ALLOCATE(zone_area(nZones))
    ALLOCATE(zone_temp(nZones))
@@ -328,6 +332,8 @@ END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+#if 0
+!# this is probably not needed now
 !###############################################################################
 SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
 !-------------------------------------------------------------------------------
@@ -372,6 +378,7 @@ SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
 !  ENDDO
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#endif
 
 
 !###############################################################################
@@ -478,17 +485,11 @@ SUBROUTINE compute_zone_benthic_fluxes(n_aed_vars, dt)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+   flux_pelz = zero_ ; flux_benz = zero_
    DO zon=1, nZones
       CALL define_column_zone(column, zon, n_aed_vars)
 
       CALL aed_calculate_benthic(column, 1)
-#if ONLY_BEN
-      DO v=nwq_var+1,nwq_var+nben_var
-#else
-      DO v=1,nwq_var+nben_var
-#endif
-         zone_cc(v, zon) = zone_cc(v, zon) + dt*flux_benz(v, zon);
-      ENDDO
    ENDDO
 END SUBROUTINE compute_zone_benthic_fluxes
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

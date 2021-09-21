@@ -130,7 +130,6 @@ MODULE fv_aed
    TYPE(partgroup_cell),DIMENSION(:),ALLOCATABLE :: all_particles
 
    !# Misc variables/options
-   LOGICAL  :: old_zones = .TRUE.
    LOGICAL  :: request_nearest = .FALSE.
    LOGICAL  :: reinited = .FALSE.
    INTEGER  :: ThisStep = 0
@@ -265,7 +264,6 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
 
    Kw = base_par_extinction
    Ksed = tss_par_extinction
-   IF ( do_zone_averaging ) old_zones = .FALSE.
    print *,'    link options configured between TFV & AED - '
    print *,'        link_ext_par       :  ',link_ext_par
    print *,'        link_water_clarity :  ',link_water_clarity
@@ -305,8 +303,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
             print *,"AED var ", i, " is empty"
          ENDIF
       ENDDO
-#endif
-#if DEBUG
+
    print*,'    init_aed_models : n_aed_vars = ',n_aed_vars,&
           ' nwq_var = ',nwq_var,' nben_var ',nben_var
 #endif
@@ -818,17 +815,7 @@ SUBROUTINE set_env_aed_models(dt_,              &
 #endif
 !  CALL CheckPhreatic
 
-   IF (old_zones) THEN
-      !# We allocate the full size array because that's how the indices are presented
-      ALLOCATE(zone(ubound(mat_id_,2))) ! JC
-      zone = 1.
-      DO i=1, ubound(mat_id_,2) ! JC
-         !# use the bottom index to fill the array
-         zone(i) = mat_id_(1,i)! JC
-      ENDDO
-   ELSE
-      CALL init_zones(ubound(mat_id_, 2), mat_id_, n_aed_vars, n_vars, n_vars_ben)
-   ENDIF
+   CALL init_zones(ubound(mat_id_, 2), mat_id_, do_zone_averaging, n_aed_vars, n_vars, n_vars_ben)
 
 !print*,"allocating all_parts with ", ubound(temp,1), " cells"
    ALLOCATE(all_particles(ubound(temp,1)))
@@ -1033,13 +1020,13 @@ END SUBROUTINE define_column
 
 
 !###############################################################################
-SUBROUTINE calculate_fluxes(column, count, flux_pel, flux_atm, flux_ben, flux_rip, h)
+SUBROUTINE calculate_fluxes(column, count, z, flux_pel, flux_atm, flux_ben, flux_rip, h)
 !-------------------------------------------------------------------------------
 ! Checks the current values of all state variables and repairs these
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    TYPE (aed_column_t), INTENT(inout) :: column(:)
-   INTEGER, INTENT(in) :: count
+   INTEGER, INTENT(in) :: count, z
    AED_REAL, INTENT(inout) :: flux_pel(:,:) !# (n_vars, n_layers)
    AED_REAL, INTENT(inout) :: flux_atm(:)   !# (n_vars+n_ben)
    AED_REAL, INTENT(inout) :: flux_ben(:)   !# (n_vars+n_ben)
@@ -1062,13 +1049,15 @@ SUBROUTINE calculate_fluxes(column, count, flux_pel, flux_atm, flux_ben, flux_ri
    IF ( do_2d_atm_flux .OR. count > 1 ) &
       flux_pel(:,1) = flux_pel(:,1) + flux_atm(1:n_vars)/h(1)
 
-   IF ( .NOT. do_zone_averaging ) THEN
+   IF ( do_zone_averaging ) THEN
+      flux_pel(:,count) = flux_pel(:,count) + flux_pelz(:,z) !/h(count)
+   ELSE
       !# Calculate temporal derivatives due to benthic exchange processes.
       CALL aed_calculate_benthic(column, count)
-
-      !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
-      flux_pel(:,count) = flux_pel(:,count)/h(count)
    ENDIF
+
+   !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
+   flux_pel(:,count) = flux_pel(:,count)/h(count)
 
    !# Add pelagic sink and source terms for all depth levels.
    DO i=1,count
@@ -1079,13 +1068,14 @@ END SUBROUTINE calculate_fluxes
 
 
 !###############################################################################
-SUBROUTINE check_states(column, top, bot)
+!SUBROUTINE check_states(column, top, bot)
+SUBROUTINE check_states(top, bot)
 !-------------------------------------------------------------------------------
 !USES
    USE IEEE_ARITHMETIC
 !
 !ARGUMENTS
-   TYPE (aed_column_t),INTENT(inout) :: column(:)
+!  TYPE (aed_column_t),INTENT(inout) :: column(:)
    INTEGER,INTENT(in) :: top, bot
 !
 !LOCALS
@@ -1106,23 +1096,23 @@ SUBROUTINE check_states(column, top, bot)
                      IF ( cc(v, lev) < min_(v) ) cc(v, lev) = min_(v)
                   ELSE IF (.NOT. no_glob_lim) THEN
                      IF ( cc(v, lev) < glob_min ) THEN
+                        print*, "Variable ", v, TRIM(tv%name), " below global min", cc(v, lev)
                         cc(v, lev) = MISVAL
-                        print*, "Variable ", v, " below glob_min"
                      ENDIF
                   ENDIF
                   IF ( .NOT. ieee_is_nan(max_(v)) ) THEN
                      IF ( cc(v, lev) > max_(v) ) cc(v, lev) = max_(v)
                   ELSE IF (.NOT. no_glob_lim) THEN
                      IF ( cc(v, lev) > glob_max ) THEN
+                        print*, "Variable ", v, " TRIM(tv%name), above global max", cc(v, lev)
                         cc(v, lev) = MISVAL
-                        print*, "Variable ", v, " above glob_max"
                      ENDIF
                   ENDIF
                ENDIF
             ELSE IF ( tv%diag .AND. .NOT. no_glob_lim ) THEN
                d = d + 1
                IF ( cc_diag(d, lev) < glob_min .OR. cc_diag(d, lev) > glob_max ) THEN
-                  print *, "Diagnostic ", d, " exceeded global bounds", cc_diag(d, lev)
+                  print *, "Diagnostic ", d, TRIM(tv%name), " exceeded global bounds", cc_diag(d, lev)
                   cc_diag(d, lev) = MISVAL
                ENDIF
             ENDIF
@@ -1306,7 +1296,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
             ENDIF
          ENDIF
       ENDDO
-      CALL check_states(column, top, bot)
+     !CALL check_states(column, top, bot)
+      CALL check_states(top, bot)
 
       !# populate local light/extc arrays one column at a time
       IF (.NOT. link_ext_par) &  !#MH check link_ext_par logic
@@ -1373,12 +1364,12 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
       !# for this column, do the main kinetic/bgc flux calculation
       !# (this includes water column, surface and benthic interfaces)
-      CALL calculate_fluxes(column, bot-top+1, flux(:,top:bot), flux_atm, flux_ben, flux_rip, h(top:bot))
+      CALL calculate_fluxes(column, bot-top+1, zm(col), flux(:,top:bot), flux_atm, flux_ben, flux_rip, h(top:bot))
 
       !# find the particles in this column and update particle bgc
       IF (do_particle_bgc) CALL Particles(column, bot-top+1, all_particles(top:bot))
 
-      !# now go forth and solve the ODE (Euler! - link to fv_ode would be nice)
+      !# now go forth and solve
       DO lev = top, bot
          DO i = 1, n_vars
             cc(i,lev)=cc(i,lev)+dt*flux(i,lev)
@@ -1394,25 +1385,27 @@ SUBROUTINE do_aed_models(nCells, nCols)
          ENDDO ! vars
       ENDDO  ! levels
 
-      !# benthic state variables
-      DO i = n_vars+1, n_vars+n_vars_ben
-        cc(i,bot)=cc(i,bot)+dt*flux_ben(i)
-      ENDDO
 
       !# add riparian flux
       IF ( do_zone_averaging ) THEN ! Untested
          DO i = n_vars+1, n_vars+n_vars_ben
-            cc(i,bot)=cc(i,bot)+dt*flux(i,bot)
-#if DEBUG>1
-            !# check for NaNs
-            IF ( ieee_is_nan(cc(i,bot)) ) THEN
-               print*,'Nan at i = ', i, ' bot = ', bot
-               print*,'h(bot) = ', h(bot), ' flux(i,bot) = ', flux(i,bot)
-               call STOPIT('NaN value')
-            ENDIF
-#endif
+            cc(i,bot)=cc(i,bot)+dt*flux_benz(i, zm(col))
          ENDDO ! ben vars
+      ELSE
+         !# if not zones_avg just do benthic flux
+         DO i = n_vars+1, n_vars+n_vars_ben
+           cc(i,bot)=cc(i,bot)+dt*flux_ben(i)
+         ENDDO
       ENDIF
+#if DEBUG>1
+      DO i = n_vars+1, n_vars+n_vars_ben
+         !# check for NaNs
+         IF ( ieee_is_nan(cc(i,bot)) ) THEN
+            print*,'Nan at i = ', i, ' bot = ', bot
+            call STOPIT('NaN value')
+         ENDIF
+      ENDDO
+#endif
 
 
       !# now the bgc updates are complete, update links to host model
@@ -1420,7 +1413,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
       CALL BioExtinction(column, bot-top+1, extcoeff(top:bot))
       !CALL BioDensity()
 
-      CALL check_states(column, top, bot)
+     !CALL check_states(column, top, bot)
+      CALL check_states(top, bot)
 !     IF (active(col) .NE. pactive(col)) THEN
 !        IF (active(col)) THEN
 !        ELSE
@@ -1430,8 +1424,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
    ENDDO ! cols
 !!$OMP END DO
 
-   IF ( do_zone_averaging ) &
-      CALL copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
+   !# This is where we used to call copy_from_zones
 
    IF ( ThisStep >= n_equil_substep ) ThisStep = 0
 
@@ -1573,91 +1566,6 @@ END SUBROUTINE Light
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-#if 0
-! This is the old version which calculated in the wrong direction
-!###############################################################################
-SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
-!-------------------------------------------------------------------------------
-!
-! Update settling of AED2 state variables in a given column
-!
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   INTEGER,INTENT(in)     :: N       !# number of vertical layers
-   AED_REAL,INTENT(in)    :: dt      !# time step (s)
-   AED_REAL,INTENT(in)    :: h(:)    !# layer thickness (m)
-   AED_REAL,INTENT(in)    :: wvel(:) !# vertical advection speed
-   AED_REAL,INTENT(inout) :: Fsed    !# value of sediment input due to settling
-   AED_REAL,INTENT(inout) :: Y(:)
-!
-!CONSTANTS
-   INTEGER,PARAMETER :: itmax=100
-!
-!LOCALS
-   INTEGER  :: i,k,it
-   AED_REAL :: step_dt
-   AED_REAL :: Yc
-   AED_REAL :: c,cmax
-   AED_REAL :: cu(0:N)
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   Fsed = 0. !# initialize sediment settling fluxes with zero
-   cu   = 0. !# initialize interface fluxes with zero
-   cmax = 0. !# initialize maximum Courant number
-
-   !# compute maximum Courant number
-   !      calculated as number of layers that the particles will travel based
-   !      on settling or buoyancy velocity.
-   !      This number is then used to split the vertical movement
-   !      calculations to limit movement across a single layer
-   DO k=1,N-1
-      !# sinking particles
-      c=abs(wvel(k+1))*dt/(0.5*(h(k+1)+h(k)))
-      IF (c > cmax) cmax=c
-      !# rising particles
-      c=abs(wvel(k))*dt/(0.5*(h(k+1)+h(k)))
-      IF (c > cmax) cmax=c
-   ENDDO
-
-   it=min(itmax,int(cmax)+1)
-   step_dt = dt / float(it);
-
-   !# splitting loop
-   DO i = 1,it
-      !# vertical loop
-      DO k=1,N-1
-         !# compute the slope ratio
-         IF (wvel(k) > 0.) THEN !# Particle is rising
-            Yc=Y(k)       !# central value
-         ELSE !# negative speed Particle is sinking
-            Yc=Y(k+1)     !# central value
-         ENDIF
-
-         !# compute the limited flux
-         cu(k)=wvel(k) * Yc
-      ENDDO
-
-      !# do the upper boundary conditions
-      cu(N) = zero_       !# limit flux into the domain from atmosphere
-
-      !# do the lower boundary conditions
-      IF (wvel(1) > 0.) THEN !# Particle is rising
-         cu(0) = 0.  !flux from benthos is zero
-      ELSE  !# Particle is settling
-         cu(0) = wvel(1)*Y(1)
-         Fsed = cu(0) * step_dt !# flux settled into the sediments per sub time step
-      ENDIF
-      !# do the vertical advection step including positive migration
-      !# and settling of suspended matter.
-      DO k=1,N
-          Y(k)=Y(k) - step_dt * ((cu(k) - cu(k-1)) / h(k))
-      ENDDO
-   ENDDO !# end of the iteration loop
-   Fsed = Fsed / dt !# Average flux rate for full time step used in AED2
-END SUBROUTINE Settling
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#endif
 !###############################################################################
 SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
 !-------------------------------------------------------------------------------
@@ -1788,7 +1696,7 @@ END FUNCTION Riparian
 SUBROUTINE Update(column,count)
 !-------------------------------------------------------------------------------
 !
-! Do non-kinetic (eg equilibrium) updates to state variables in AED2 modules
+! Do non-kinetic (eg equilibrium) updates to state variables in AED modules
 !
 !-------------------------------------------------------------------------------
 !ARGUMENTS
