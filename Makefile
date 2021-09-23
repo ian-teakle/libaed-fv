@@ -3,6 +3,8 @@
 # with hydrodynamic driver wrapper
 #
 
+SOVERS=1
+VERS=3.0
 
 objdir=obj
 srcdir=src
@@ -26,7 +28,7 @@ ifeq ($(OSTYPE),Darwin)
   OMPFLAG=-fopenmp
   so_ext=dylib
 else
-  SHARED=-shared
+  SHARED=-shared -Wl,-soname,$(OUTLIB).so.$(SOVERS)
   OMPFLAG=-qopenmp
   so_ext=so
 endif
@@ -134,8 +136,9 @@ endif
 	ranlib $@
 
 ${libdir}/${OUTLIB}.${so_ext}: ${libdir}/lib${LIBAEDFV}.a ${OBJECTS}
-	$(FC) ${SHARED} -o $@.${VERS} ${OBJECTS} ${LDFLAGS} ${SOFLAGS}
-	ln -sf ${OUTLIB}.${so_ext}.${VERS} $@
+	$(FC) ${SHARED} -o $@.${SOVERS}.${VERS} ${OBJECTS} ${LDFLAGS} ${SOFLAGS}
+	ln -sf ${OUTLIB}.${so_ext}.${SOVERS}.${VERS} $@
+	ln -sf ${OUTLIB}.${so_ext}.${SOVERS}.${VERS} $@.${SOVERS}
 
 ${objdir}/%.o: ${srcdir}/%.F90 ${AEDWATDIR}/include/aed.h
 	$(F90) ${FFLAGS} ${INCLUDES} -g -c $< -o $@
