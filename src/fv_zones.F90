@@ -156,8 +156,8 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_aed_vars, n_vars, n_vars_ben)
 
    ALLOCATE(zone_count(nZones))
 
-   ALLOCATE(zone_cc(n_vars, nZones))
-   ALLOCATE(zone_cc_diag(n_aed_vars-n_vars, nZones))
+   ALLOCATE(zone_cc(n_vars+n_vars_ben, nZones))
+   ALLOCATE(zone_cc_diag(n_aed_vars-n_vars-n_vars_ben, nZones))
 
    ALLOCATE(flux_pelz(n_vars, nZones))
    ALLOCATE(flux_benz(n_vars, nZones))

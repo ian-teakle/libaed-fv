@@ -1507,7 +1507,7 @@ CONTAINS
             DO lev=1, count
                CALL aed_initialize(column, lev)
             ENDDO
-            CALL aed_initialize_benthic(column, count)
+            CALL aed_initialize_benthic(column, 1)
          ENDDO
       ENDIF
       reinited = .TRUE.
