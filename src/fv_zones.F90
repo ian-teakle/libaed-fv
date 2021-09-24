@@ -472,7 +472,7 @@ SUBROUTINE compute_zone_benthic_fluxes(n_aed_vars)
    INTEGER,INTENT(in) :: n_aed_vars
 !
 !LOCALS
-   INTEGER :: zon, v
+   INTEGER :: zon
    TYPE (aed_column_t) :: column(n_aed_vars)
 !
 !-------------------------------------------------------------------------------
@@ -498,12 +498,11 @@ SUBROUTINE aed_initialize_zone_benthic(nCols, active, n_aed_vars, cc_diag, benth
    INTEGER,DIMENSION(:),INTENT(in) :: benth_map
 !
 !LOCALS
-   INTEGER :: col, zon, bot, v
+   INTEGER :: col, zon, bot
    TYPE (aed_column_t) :: column(n_aed_vars)
 !
 !-------------------------------------------------------------------------------
 !BEGIN
-   flux_pelz = zero_ ; flux_benz = zero_
    DO zon=1, nZones
       CALL define_column_zone(column, zon, n_aed_vars)
 
@@ -534,7 +533,7 @@ SUBROUTINE calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, ben
    INTEGER,DIMENSION(:),INTENT(in) :: benth_map
 !
 !LOCALS
-   INTEGER :: col, zon, bot, v
+   INTEGER :: col, zon, bot
    TYPE (aed_column_t) :: column(n_aed_vars)
 !
 !-------------------------------------------------------------------------------
