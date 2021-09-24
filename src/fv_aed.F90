@@ -36,6 +36,7 @@
 #ifndef DEBUG
 #define DEBUG      0
 #endif
+#define PLAN_A 1
 
 !###############################################################################
 MODULE fv_aed
@@ -1312,7 +1313,13 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
    IF ( do_zone_averaging ) THEN
       CALL copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
-      CALL compute_zone_benthic_fluxes(n_aed_vars, dt)
+#if PLAN_A
+      CALL compute_zone_benthic_fluxes(n_aed_vars)
+#else
+! if we continue to have issues with diag vars, might try the following instead of 
+!   compute_zone_benthic_fluxes and (the later call) copy_from_zone
+      CALL calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, benth_map)
+#endif
    ENDIF
 
 !!$OMP DO
@@ -1424,7 +1431,11 @@ SUBROUTINE do_aed_models(nCells, nCols)
    ENDDO ! cols
 !!$OMP END DO
 
-   !# This is where we used to call copy_from_zones
+   !# This now only copies the diagnostic vars on the bottom layer
+#if PLAN_A
+   IF ( do_zone_averaging ) &
+      CALL copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
+#endif
 
    IF ( ThisStep >= n_equil_substep ) ThisStep = 0
 
@@ -1485,15 +1496,20 @@ CONTAINS
    !-------------------------------------------------------------------------------
    !BEGIN
       nCols = ubound(active, 1)
-      DO col=1, nCols
-         top = surf_map(col)
-         bot = benth_map(col)
-         count = bot-top+1
-         CALL define_column(column, col, cc, cc_diag, flux, flux_atm, flux_ben, flux_rip)
-         DO lev=1, count
-            CALL aed_initialize(column, lev)
+      IF ( do_zone_averaging ) THEN
+         CALL aed_initialize_zone_benthic(nCols, active, n_aed_vars, cc_diag, benth_map)
+      ELSE
+         DO col=1, nCols
+            top = surf_map(col)
+            bot = benth_map(col)
+            count = bot-top+1
+            CALL define_column(column, col, cc, cc_diag, flux, flux_atm, flux_ben, flux_rip)
+            DO lev=1, count
+               CALL aed_initialize(column, lev)
+            ENDDO
+            CALL aed_initialize_benthic(column, count)
          ENDDO
-      ENDDO
+      ENDIF
       reinited = .TRUE.
    END SUBROUTINE re_initialize
 
