@@ -124,6 +124,7 @@ MODULE fv_aed
    AED_REAL,DIMENSION(:),  POINTER :: ustar_bed
    AED_REAL,DIMENSION(:),  POINTER :: wv_uorb, wv_t
    AED_REAL,DIMENSION(:),  POINTER :: vvel, cvel   !# vertical velocity, cell velocity
+   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: colnums
 
    !# Particle groups
    INTEGER :: num_groups
@@ -745,7 +746,7 @@ SUBROUTINE set_env_aed_models(dt_,              &
 !
 !LOCALS
    INTEGER :: i, j
-   INTEGER :: nTypes, cType
+   INTEGER :: nTypes, cType, nCols
    INTEGER, DIMENSION(:),ALLOCATABLE :: mat_t
 !
 !-------------------------------------------------------------------------------
@@ -773,6 +774,11 @@ SUBROUTINE set_env_aed_models(dt_,              &
      wv_uorb => wv_uorb_
      wv_t => wv_t_
    END IF
+   nCols = ubound(longwave_,1)
+   ALLOCATE(colnums(1:nCols))
+   DO I=1, nCols
+      colnums(i) = i
+   ENDDO
 
    !# 3D variables being pointed to
    h => h_               !# layer heights [1d array] needed for advection, diffusion
@@ -891,6 +897,7 @@ SUBROUTINE check_data
             CASE ( 'air_temp' )    ; tvar%found = .true.
             CASE ( 'humidity' )    ; tvar%found = .true.
             CASE ( 'longwave' )    ; tvar%found = .true.
+            CASE ( 'col_num' )     ; tvar%found = .true.
             CASE ( 'nearest_active' ) ; tvar%found = .true. ; request_nearest = .true.
             CASE ( 'nearest_depth' )  ; tvar%found = .true. ; request_nearest = .true.
          !  CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
@@ -983,6 +990,7 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => air_temp(col)
             CASE ( 'humidity' )    ; column(av)%cell_sheet => humidity(col)
             CASE ( 'longwave' )    ; column(av)%cell_sheet => longwave(col)
+            CASE ( 'col_num' )     ; column(av)%cell_sheet => colnums(col)
 
             CASE ( 'nearest_active' ) ; column(av)%cell_sheet => nearest_active(col);
             CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => nearest_depth(col);
@@ -1312,6 +1320,11 @@ SUBROUTINE do_aed_models(nCells, nCols)
 !!$OMP END DO
 
    IF ( do_zone_averaging ) THEN
+      !# debug : set diag value on the bottom to the column number
+   !  DO col=1, nCols
+   !     bot = benth_map(col)
+   !     cc_diag(:,bot) = col
+   !  ENDDO
       CALL copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
 #if PLAN_A
       CALL compute_zone_benthic_fluxes(n_aed_vars)
@@ -1434,7 +1447,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
    !# This now only copies the diagnostic vars on the bottom layer
 #if PLAN_A
    IF ( do_zone_averaging ) &
-      CALL copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
+      CALL copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_map)
 #endif
 
    IF ( ThisStep >= n_equil_substep ) ThisStep = 0

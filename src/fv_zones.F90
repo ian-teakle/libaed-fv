@@ -67,6 +67,7 @@ MODULE fv_zones
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_bathy
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_I_0
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_longwave
+   AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_colnums
    INTEGER, DIMENSION(:),  ALLOCATABLE        :: zone_count, zm
 
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: flux_pelz
@@ -125,8 +126,10 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_aed_vars, n_vars, n_vars_ben)
    nZones = nTypes
 
    ALLOCATE(zone(nZones))
+   ALLOCATE(zone_colnums(nZones))
    DO zon=1,nZones
       zone(zon) = mat_t(zon)
+      zone_colnums(zon) = zon
    ENDDO
    DEALLOCATE(mat_t)
 
@@ -311,7 +314,10 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
             ta = ta + (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
       !     zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + &
       !               (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
-            zone_cc_diag(:,zon) = cc_diag(:,bot)
+
+      !     zone_cc_diag(:,zon) = cc_diag(:,bot)
+            zone_cc_diag(:,zon) = zone_cc_diag(:,zon) + &
+                                 (cc_diag(:,bot) * (area(col) / zone_area(zon)))
          ENDIF
       ENDDO
       zone_cc(1:nwq_var+nben_var,zon) = ta
@@ -334,18 +340,19 @@ END SUBROUTINE copy_to_zone
 
 !###############################################################################
 ! Copies the diagnostic variables from the zones to the main data block
-SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
+SUBROUTINE copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   INTEGER,INTENT(in)     :: nCols
+   INTEGER,INTENT(in)     :: nCols, n_aed_vars
    AED_REAL,INTENT(inout) :: cc(:,:)       !# (n_vars, n_layers)
-   AED_REAL,INTENT(out) :: cc_diag(:,:)    !# (n_vars, n_layers)
+   AED_REAL,INTENT(out)   :: cc_diag(:,:)  !# (n_vars, n_layers)
    AED_REAL,DIMENSION(:),INTENT(in) :: area
    LOGICAL,DIMENSION(:), INTENT(in) :: active
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
 !
 !LOCALS
-   INTEGER :: col, zon, bot
+   INTEGER :: col, zon, bot, i, j
+   TYPE(aed_variable_t),POINTER :: tvar
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -355,8 +362,16 @@ SUBROUTINE copy_from_zone(nCols, cc, cc_diag, area, active, benth_map)
       bot = benth_map(col)
       zon = zm(col)
 
-      !# only want the diag vars
-      cc_diag(:,bot) = zone_cc_diag(:,zon)
+      !# only want the diag vars that have zavg == true
+      !    cc_diag(:,bot) = zone_cc_diag(:,zon)
+      DO i=1,n_aed_vars
+         IF ( aed_get_var(i, tvar) ) THEN
+            IF ( tvar%diag ) THEN
+               j = j + 1
+               IF ( tvar%zavg ) cc_diag(j,bot) = zone_cc_diag(j,zon)
+            ENDIF
+         ENDIF
+      ENDDO
    ENDDO
 
 !  print*,"copy from zone :"
@@ -430,6 +445,7 @@ SUBROUTINE define_column_zone(column, zon, n_aed_vars)!, n_vars)
             CASE ( 'air_temp' )    ; column(av)%cell_sheet => zone_air_temp(zon)
             CASE ( 'humidity' )    ; column(av)%cell_sheet => zone_humidity(zon)
             CASE ( 'longwave' )    ; column(av)%cell_sheet => zone_longwave(zon)
+            CASE ( 'col_num' )     ; column(av)%cell_sheet => zone_colnums(zon)
 
        !    CASE ( 'nearest_active' ) ; column(av)%cell_sheet => zone_nearest_active(col);
        !    CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => zone_nearest_depth(col);
