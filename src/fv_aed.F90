@@ -117,7 +117,6 @@ MODULE fv_aed
 
    !# External variables
    AED_REAL :: dt
-   INTEGER, DIMENSION(:,:),POINTER :: mat
    AED_REAL,DIMENSION(:,:),POINTER :: rad
    AED_REAL,DIMENSION(:),  POINTER :: temp, salt, rho, nuh, h, z
    AED_REAL,DIMENSION(:),  POINTER :: extcoeff, tss, bio_drag
@@ -126,7 +125,7 @@ MODULE fv_aed
    AED_REAL,DIMENSION(:),  POINTER :: ustar_bed
    AED_REAL,DIMENSION(:),  POINTER :: wv_uorb, wv_t
    AED_REAL,DIMENSION(:),  POINTER :: vvel, cvel   !# vertical velocity, cell velocity
-   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: colnums
+   AED_REAL,ALLOCATABLE,DIMENSION(:),TARGET :: colnums, mat
 
    !# Particle groups
    INTEGER :: num_groups
@@ -764,7 +763,6 @@ SUBROUTINE set_env_aed_models(dt_,              &
    longwave => longwave_
    wnd => wnd_
    ustar_bed => ustar_bed_
-   mat => mat_id_
    bathy => bathy_
    rain  => rain_
    shadefrac => solarshade_
@@ -776,10 +774,12 @@ SUBROUTINE set_env_aed_models(dt_,              &
      wv_uorb => wv_uorb_
      wv_t => wv_t_
    END IF
-   nCols = ubound(longwave_,1)
-   ALLOCATE(colnums(1:nCols))
+   nCols = ubound(mat_id_,2)
+   ALLOCATE(colnums(nCols))
+   ALLOCATE(mat(nCols))
    DO I=1, nCols
       colnums(i) = i
+      mat(i) = mat_id_(1,i)
    ENDDO
 
    !# 3D variables being pointed to
@@ -892,7 +892,7 @@ SUBROUTINE check_data
             CASE ( 'nir' )         ; tvar%found = .true.
             CASE ( 'uva' )         ; tvar%found = .true.
             CASE ( 'uvb' )         ; tvar%found = .true.
-            CASE ( 'sed_zone' )    ; tvar%found = .true.
+            CASE ( 'sed_zone' )    ; tvar%found = do_zone_averaging
             CASE ( 'wind_speed' )  ; tvar%found = .true.
             CASE ( 'par_sf' )      ; tvar%found = .true.
             CASE ( 'taub' )        ; tvar%found = .true.
@@ -972,7 +972,11 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'layer_area' )  ; column(av)%cell_sheet => area(col)
             CASE ( 'rain' )        ; column(av)%cell_sheet => rain(col)
             CASE ( 'rainloss' )    ; column(av)%cell_sheet => rainloss(col)
-            CASE ( 'material' )    ; column(av)%cell_sheet => zone(col)
+            CASE ( 'material' )    ; IF (do_zone_averaging) THEN
+                                        column(av)%cell_sheet => zone(zm(col))
+                                     ELSE
+                                        column(av)%cell_sheet => mat(col)
+                                     ENDIF
             CASE ( 'bathy' )       ; column(av)%cell_sheet => bathy(col)
             CASE ( 'extc_coef' )   ; column(av)%cell => extcoeff(top:bot)
             CASE ( 'tss' )         ; column(av)%cell => tss(top:bot)
