@@ -37,9 +37,12 @@ MODULE fv_zones
 
    IMPLICIT NONE
 
+   PRIVATE
+
    PUBLIC init_zones, calc_zone_areas, copy_to_zone, copy_from_zone
-   PUBLIC compute_zone_benthic_fluxes, zm, flux_pelz, flux_benz
-   PUBLIC calculate_zone_benthic_fluxes, zone_cc_diag
+   PUBLIC compute_zone_benthic_fluxes, aed_initialize_zone_benthic
+   PUBLIC STOPIT
+   PUBLIC zone, zm, flux_pelz, flux_benz
 
    !#--------------------------------------------------------------------------#
    !# Module Data
@@ -84,13 +87,13 @@ CONTAINS
 
 
 !###############################################################################
-SUBROUTINE init_zones(nCols, mat_id, avg, n_aed_vars, n_vars, n_vars_ben)
+SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in) :: nCols
    INTEGER,DIMENSION(:,:),INTENT(in) :: mat_id
    LOGICAL,INTENT(in) :: avg
-   INTEGER,INTENT(in) :: n_aed_vars, n_vars, n_vars_ben
+   INTEGER,INTENT(in) :: n_vars, n_vars_ben, n_vars_diag
 !
 !LOCALS
    INTEGER :: i,j, cType, nTypes
@@ -160,10 +163,10 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_aed_vars, n_vars, n_vars_ben)
    ALLOCATE(zone_count(nZones))
 
    ALLOCATE(zone_cc(n_vars+n_vars_ben, nZones))
-   ALLOCATE(zone_cc_diag(n_aed_vars-n_vars-n_vars_ben, nZones))
+   ALLOCATE(zone_cc_diag(n_vars_diag, nZones))
 
    ALLOCATE(flux_pelz(n_vars, nZones))
-   ALLOCATE(flux_benz(n_vars, nZones))
+   ALLOCATE(flux_benz(n_vars+n_vars_ben, nZones))
 
    nwq_var = n_vars
    nben_var = n_vars_ben
@@ -364,6 +367,7 @@ SUBROUTINE copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_ma
 
       !# only want the diag vars that have zavg == true
       !    cc_diag(:,bot) = zone_cc_diag(:,zon)
+      j = 0
       DO i=1,n_aed_vars
          IF ( aed_get_var(i, tvar) ) THEN
             IF ( tvar%diag ) THEN

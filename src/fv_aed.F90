@@ -48,6 +48,8 @@ MODULE fv_aed
 
    IMPLICIT NONE
 
+   PRIVATE
+
    PUBLIC init_aed_models,     &
           init_var_aed_models, &
           set_env_aed_models,  &
@@ -822,7 +824,7 @@ SUBROUTINE set_env_aed_models(dt_,              &
 #endif
 !  CALL CheckPhreatic
 
-   CALL init_zones(ubound(mat_id_, 2), mat_id_, do_zone_averaging, n_aed_vars, n_vars, n_vars_ben)
+   CALL init_zones(ubound(mat_id_, 2), mat_id_, do_zone_averaging, n_vars, n_vars_ben, n_vars_diag)
 
 !print*,"allocating all_parts with ", ubound(temp,1), " cells"
    ALLOCATE(all_particles(ubound(temp,1)))
@@ -983,7 +985,7 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'nir' )         ; column(av)%cell => nir(top:bot)
             CASE ( 'uva' )         ; column(av)%cell => uva(top:bot)
             CASE ( 'uvb' )         ; column(av)%cell => uvb(top:bot)
-            CASE ( 'sed_zone' )    ; column(av)%cell_sheet => zone(col)
+            CASE ( 'sed_zone' )    ; column(av)%cell_sheet => zone(zm(col))
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => wnd(col)
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => I_0(col)
             CASE ( 'taub' )        ; column(av)%cell_sheet => col_taub
