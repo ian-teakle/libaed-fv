@@ -37,7 +37,7 @@ ifeq ($(F90),ifort)
   INCLUDES+=-I/opt/intel/include
   DEBUG_FFLAGS=-g -traceback
   OPT_FFLAGS=-O3 ${OMPFLAG}
-  FFLAGS=-fpp -warn all -module ${moddir} -static-intel -mp1 -warn nounused $(DEFINES)
+  FFLAGS=-g -fpp -warn all -module ${moddir} -static-intel -mp1 -warn nounused $(DEFINES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-check all -check noarg_temp_created
   endif
@@ -46,7 +46,7 @@ else ifeq ($(F90),flang)
   INCLUDES+=-I../flang_extra/mod
   DEBUG_FFLAGS=-g
   OPT_FFLAGS=-O3
-  FFLAGS=-fPIC -module ${moddir} $(DEFINES) $(INCLUDES)
+  FFLAGS=-g -fPIC -module ${moddir} $(DEFINES) $(INCLUDES)
   ifeq ($(WITH_CHECKS),true)
     FFLAGS+=-Mbounds
   endif

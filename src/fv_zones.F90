@@ -165,7 +165,7 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
    ALLOCATE(zone_cc(n_vars+n_vars_ben, nZones))
    ALLOCATE(zone_cc_diag(n_vars_diag, nZones))
 
-   ALLOCATE(flux_pelz(n_vars, nZones))
+   ALLOCATE(flux_pelz(n_vars+n_vars_ben, nZones))
    ALLOCATE(flux_benz(n_vars+n_vars_ben, nZones))
 
    nwq_var = n_vars
@@ -307,6 +307,7 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
 !-------------------------------------------------------------------------------
 !BEGIN
    zone_cc = zero_
+   zone_cc_diag = zero_
 
    DO zon=1,nZones
       ta = 0.
@@ -486,28 +487,6 @@ END SUBROUTINE define_column_zone
 
 
 !###############################################################################
-SUBROUTINE compute_zone_benthic_fluxes(n_aed_vars)
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   INTEGER,INTENT(in) :: n_aed_vars
-!
-!LOCALS
-   INTEGER :: zon
-   TYPE (aed_column_t) :: column(n_aed_vars)
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   flux_pelz = zero_ ; flux_benz = zero_
-   DO zon=1, nZones
-      CALL define_column_zone(column, zon, n_aed_vars)
-
-      CALL aed_calculate_benthic(column, 1)
-   ENDDO
-END SUBROUTINE compute_zone_benthic_fluxes
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
 SUBROUTINE aed_initialize_zone_benthic(nCols, active, n_aed_vars, cc_diag, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -543,6 +522,31 @@ END SUBROUTINE aed_initialize_zone_benthic
 
 
 !###############################################################################
+SUBROUTINE compute_zone_benthic_fluxes(n_aed_vars)
+!-------------------------------------------------------------------------------
+!ARGUMENTS
+   INTEGER,INTENT(in) :: n_aed_vars
+!
+!LOCALS
+   INTEGER :: zon, v
+   TYPE (aed_column_t) :: column(n_aed_vars)
+!
+!-------------------------------------------------------------------------------
+!BEGIN
+   flux_pelz = zero_ ; flux_benz = zero_
+!!$OMP DO PRIVATE(zon,column)
+   DO zon=1, nZones
+      CALL define_column_zone(column, zon, n_aed_vars)
+
+      CALL aed_calculate_benthic(column, 1, .TRUE.)
+   ENDDO
+!!$OMP END DO
+END SUBROUTINE compute_zone_benthic_fluxes
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+!###############################################################################
+#if 0
 SUBROUTINE calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -575,6 +579,7 @@ SUBROUTINE calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, ben
       cc_diag(:,bot) = zone_cc_diag(:,zon)
    ENDDO
 END SUBROUTINE calculate_zone_benthic_fluxes
+#endif
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 

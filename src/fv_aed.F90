@@ -299,13 +299,13 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    n_vars_diag_sheet = n_sd
 
 #if DEBUG
-      DO i=1,n_aed_vars
-         IF ( aed_get_var(i, tvar) ) THEN
-            print *,"AED var ", i, tvar%sheet, tvar%diag, tvar%extern, TRIM(tvar%name)
-         ELSE
-            print *,"AED var ", i, " is empty"
-         ENDIF
-      ENDDO
+   DO i=1,n_aed_vars
+      IF ( aed_get_var(i, tvar) ) THEN
+         print *,"AED var ", i, tvar%sheet, tvar%diag, tvar%extern, TRIM(tvar%name)
+      ELSE
+         print *,"AED var ", i, " is empty"
+      ENDIF
+   ENDDO
 
    print*,'    init_aed_models : n_aed_vars = ',n_aed_vars,&
           ' nwq_var = ',nwq_var,' nben_var ',nben_var
@@ -470,12 +470,8 @@ SUBROUTINE init_var_aed_models(nCells, cc_, cc_diag_, nwq, nwqben, sm, bm)
    IF ( init_values_file /= '' ) CALL set_initial_from_file
    IF ( route_table_file /= '' ) CALL load_route_table(ubound(bm, 1))
 
-   ALLOCATE(flux(n_vars, nCells),stat=rc) ; IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (flux)'
+   ALLOCATE(flux(n_vars+n_vars_ben, nCells),stat=rc) ; IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (flux)'
 
-!  ALLOCATE(flux2(n_vars, nCells),stat=rc) ; IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (flux2)'
-!  ALLOCATE(flux3(n_vars, nCells),stat=rc) ; IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (flux3)'
-!  ALLOCATE(flux4(n_vars, nCells),stat=rc) ; IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (flux4)'
-!  ALLOCATE(cc1(n_vars, nCells),stat=rc)   ; IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (cc1)'
 !
 !-------------------------------------------------------------------------------
 CONTAINS
@@ -774,12 +770,13 @@ SUBROUTINE set_env_aed_models(dt_,              &
      wv_uorb => wv_uorb_
      wv_t => wv_t_
    END IF
+
    nCols = ubound(mat_id_,2)
    ALLOCATE(colnums(nCols))
    ALLOCATE(mat(nCols))
    DO I=1, nCols
       colnums(i) = i
-      mat(i) = mat_id_(1,i)
+      mat(i) = REAL(mat_id_(1,i))
    ENDDO
 
    !# 3D variables being pointed to
@@ -972,7 +969,7 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'layer_area' )  ; column(av)%cell_sheet => area(col)
             CASE ( 'rain' )        ; column(av)%cell_sheet => rain(col)
             CASE ( 'rainloss' )    ; column(av)%cell_sheet => rainloss(col)
-            CASE ( 'material' )    ; IF (do_zone_averaging) THEN
+            CASE ( 'material' )    ; IF ( do_zone_averaging ) THEN
                                         column(av)%cell_sheet => zone(zm(col))
                                      ELSE
                                         column(av)%cell_sheet => mat(col)
@@ -1062,14 +1059,13 @@ SUBROUTINE calculate_fluxes(column, count, z, flux_pel, flux_atm, flux_ben, flux
 
    !# Distribute the fluxes into pelagic surface layer
    IF ( do_2d_atm_flux .OR. count > 1 ) &
-      flux_pel(:,1) = flux_pel(:,1) + flux_atm(1:n_vars)/h(1)
+      flux_pel(:,1) = flux_pel(:,1) + flux_atm(:)/h(1)
 
-   IF ( do_zone_averaging ) THEN
+   IF ( do_zone_averaging ) &
       flux_pel(:,count) = flux_pel(:,count) + flux_pelz(:,z) !/h(count)
-   ELSE
-      !# Calculate temporal derivatives due to benthic exchange processes.
-      CALL aed_calculate_benthic(column, count)
-   ENDIF
+
+   !# Calculate temporal derivatives due to benthic exchange processes.
+   CALL aed_calculate_benthic(column, count, do_zone_averaging)
 
    !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
    flux_pel(:,count) = flux_pel(:,count)/h(count)
@@ -1269,7 +1265,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
       ENDDO
    ENDIF
 
-!!$OMP DO
+!!$OMP DO PRIVATE(col,top,bot)
    !#--------------------------------------------------------------------
    !# LOOP THROUGH COLUMNS DOING JOBS PRIOR TO THE KINETICS BEING SOLVED
    DO col=1, nCols
@@ -1311,7 +1307,6 @@ SUBROUTINE do_aed_models(nCells, nCols)
             ENDIF
          ENDIF
       ENDDO
-     !CALL check_states(column, top, bot)
       CALL check_states(top, bot)
 
       !# populate local light/extc arrays one column at a time
@@ -1325,6 +1320,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
    ENDDO
 !!$OMP END DO
 
+!!$OMP BARRIER
+
    IF ( do_zone_averaging ) THEN
       !# debug : set diag value on the bottom to the column number
    !  DO col=1, nCols
@@ -1335,13 +1332,13 @@ SUBROUTINE do_aed_models(nCells, nCols)
 #if PLAN_A
       CALL compute_zone_benthic_fluxes(n_aed_vars)
 #else
-! if we continue to have issues with diag vars, might try the following instead of 
+! if we continue to have issues with diag vars, might try the following instead of
 !   compute_zone_benthic_fluxes and (the later call) copy_from_zone
       CALL calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, benth_map)
 #endif
    ENDIF
 
-!!$OMP DO
+!!$OMP DO PRIVATE(col,top,bot,aed_active_col,na,lev,i)
    !#--------------------------------------------------------------------
    !# THIS IS THE MAIN WQ SOLUTION LOOP
    DO col=1, nCols
@@ -1439,7 +1436,6 @@ SUBROUTINE do_aed_models(nCells, nCols)
       CALL BioExtinction(column, bot-top+1, extcoeff(top:bot))
       !CALL BioDensity()
 
-     !CALL check_states(column, top, bot)
       CALL check_states(top, bot)
 !     IF (active(col) .NE. pactive(col)) THEN
 !        IF (active(col)) THEN
@@ -1450,7 +1446,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
    ENDDO ! cols
 !!$OMP END DO
 
-   !# This now only copies the diagnostic vars on the bottom layer
+!!$OMP BARRIER
+
 #if PLAN_A
    IF ( do_zone_averaging ) &
       CALL copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_map)
@@ -1605,7 +1602,7 @@ END SUBROUTINE Light
 SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
 !-------------------------------------------------------------------------------
 !
-! Update settling of AED2 state variables in a given column
+! Update settling of AED state variables in a given column
 !
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -2003,3 +2000,48 @@ END SUBROUTINE Stress
 
 !===============================================================================
 END MODULE fv_aed
+
+!===============================================================================
+!
+!  * calc_zone areas
+!  * do particles
+!
+!  * loop through columns :
+!    + do mobility
+!    + do settling
+!    + do light
+!
+!    + if zones :
+!      = for each column :
+!        z_bottom_cell = z_bottom_cel + bottom_cell * (column area / zone_area)
+!        z_bot_cell_diag = bot_cell_diag
+!      = compute_zone_benthic
+!
+!    + ch column
+!      = do_stress
+!      = some stuff
+!      = calc_fluxes
+!        - calc surface flux
+!        - if zone :
+!          # add zone pel-flux to column pel-flux
+!        - else :
+!          # calc_benthic fluxes
+!        - divide all pel fluxes by height
+!        - do all pelagics
+!      = Particles again ?
+!      = loop top to bottom apply fluxes
+!
+!      = if zones :
+!        - apply zone fluxes to cells
+!      = else :
+!        - apply benth fluxes
+!
+!      = do biodrag
+!      = do bioextinction
+!
+!      = check states
+!
+!  * if zones :
+!      = copy_from zones :
+!        - copy zone diag to columns bottom cell diags
+!===============================================================================
