@@ -566,7 +566,7 @@ SUBROUTINE calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, ben
    DO zon=1, nZones
       CALL define_column_zone(column, zon, n_aed_vars)
 
-      CALL aed_calculate_benthic(column, 1)
+      CALL aed_calculate_benthic(column, 1, .TRUE.)
    ENDDO
 
    !# now copy the diagnostic vars back

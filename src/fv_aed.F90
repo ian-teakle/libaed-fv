@@ -1061,8 +1061,14 @@ SUBROUTINE calculate_fluxes(column, count, z, flux_pel, flux_atm, flux_ben, flux
    IF ( do_2d_atm_flux .OR. count > 1 ) &
       flux_pel(:,1) = flux_pel(:,1) + flux_atm(:)/h(1)
 
-   IF ( do_zone_averaging ) &
+   IF ( do_zone_averaging ) THEN
       flux_pel(:,count) = flux_pel(:,count) + flux_pelz(:,z) !/h(count)
+
+      !# Calculate temporal derivatives due to benthic exchange processes.
+   !  CALL aed_calculate_benthic(column, count, .FALSE.)
+   ELSE
+      CALL aed_calculate_benthic(column, count)
+   ENDIF
 
    !# Calculate temporal derivatives due to benthic exchange processes.
    CALL aed_calculate_benthic(column, count, do_zone_averaging)
