@@ -1070,9 +1070,6 @@ SUBROUTINE calculate_fluxes(column, count, z, flux_pel, flux_atm, flux_ben, flux
       CALL aed_calculate_benthic(column, count)
    ENDIF
 
-   !# Calculate temporal derivatives due to benthic exchange processes.
-   CALL aed_calculate_benthic(column, count, do_zone_averaging)
-
    !# Distribute bottom flux into pelagic over bottom box (i.e., divide by layer height).
    flux_pel(:,count) = flux_pel(:,count)/h(count)
 
