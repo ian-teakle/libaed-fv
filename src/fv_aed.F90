@@ -889,7 +889,7 @@ SUBROUTINE check_data
             CASE ( 'nir' )         ; tvar%found = .true.
             CASE ( 'uva' )         ; tvar%found = .true.
             CASE ( 'uvb' )         ; tvar%found = .true.
-            CASE ( 'sed_zone' )    ; tvar%found = do_zone_averaging
+            CASE ( 'sed_zone' )    ; tvar%found = .true.
             CASE ( 'wind_speed' )  ; tvar%found = .true.
             CASE ( 'par_sf' )      ; tvar%found = .true.
             CASE ( 'taub' )        ; tvar%found = .true.

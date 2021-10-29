@@ -301,8 +301,9 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
 !
 !LOCALS
-   INTEGER :: col, zon, bot
+   INTEGER :: col, zon, bot, v
    AED_REAL :: ta(nwq_var+nben_var)
+   AED_REAL :: fa
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -312,32 +313,16 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
    DO zon=1,nZones
       ta = 0.
       DO col=1, nCols
-         IF (.NOT. active(col)) CYCLE
-         IF ( zon == zm(col) ) THEN
+         IF ( active(col) .AND. (zon == zm(col)) ) THEN
             bot = benth_map(col)
-            ta = ta + (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
-      !     zone_cc(1:nwq_var+nben_var,zon) = zone_cc(1:nwq_var+nben_var,zon) + &
-      !               (cc(1:nwq_var+nben_var,bot) * (area(col) / zone_area(zon)))
+            fa = area(col) / zone_area(zon)
+            ta = ta + (cc(1:nwq_var+nben_var,bot) * fa)
 
-      !     zone_cc_diag(:,zon) = cc_diag(:,bot)
-            zone_cc_diag(:,zon) = zone_cc_diag(:,zon) + &
-                                 (cc_diag(:,bot) * (area(col) / zone_area(zon)))
+            zone_cc_diag(:,zon) = zone_cc_diag(:,zon) + (cc_diag(:,bot) * fa)
          ENDIF
       ENDDO
       zone_cc(1:nwq_var+nben_var,zon) = ta
    ENDDO
-
-!  print*,"copy to zone :"
-!  DO zon=1,nZones
-!     DO col=1, nCols
-!        IF (.NOT. active(col)) CYCLE
-!        IF ( zon == zm(col) ) THEN
-!           bot = benth_map(col)
-!           print*,"zonish",zone_cc(3,zon), "orig",cc(3,bot), zon
-!           exit
-!        ENDIF
-!     ENDDO
-!  ENDDO
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -378,18 +363,6 @@ SUBROUTINE copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_ma
          ENDIF
       ENDDO
    ENDDO
-
-!  print*,"copy from zone :"
-!  DO zon=1,nZones
-!     DO col=1, nCols
-!        IF (.NOT. active(col)) CYCLE
-!        IF ( zon == zm(col) ) THEN
-!           bot = benth_map(col)
-!           print*,"zonish", zone_cc(3,zon), "orig", cc(3,bot), zon
-!           exit
-!        ENDIF
-!     ENDDO
-!  ENDDO
 END SUBROUTINE copy_from_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
