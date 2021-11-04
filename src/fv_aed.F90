@@ -36,7 +36,6 @@
 #ifndef DEBUG
 #define DEBUG      0
 #endif
-#define PLAN_A 1
 
 !###############################################################################
 MODULE fv_aed
@@ -1082,7 +1081,6 @@ END SUBROUTINE calculate_fluxes
 
 
 !###############################################################################
-!SUBROUTINE check_states(column, top, bot)
 SUBROUTINE check_states(top, bot)
 !-------------------------------------------------------------------------------
 !USES
@@ -1327,18 +1325,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
    IF ( do_zone_averaging ) THEN
       !# debug : set diag value on the bottom to the column number
-   !  DO col=1, nCols
-   !     bot = benth_map(col)
-   !     cc_diag(:,bot) = col
-   !  ENDDO
       CALL copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
-#if PLAN_A
       CALL compute_zone_benthic_fluxes(n_aed_vars)
-#else
-! if we continue to have issues with diag vars, might try the following instead of
-!   compute_zone_benthic_fluxes and (the later call) copy_from_zone
-      CALL calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, benth_map)
-#endif
    ENDIF
 
 !!$OMP DO PRIVATE(col,top,bot,aed_active_col,na,lev,i)
@@ -1451,10 +1439,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
 !!$OMP BARRIER
 
-#if PLAN_A
    IF ( do_zone_averaging ) &
-      CALL copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_map)
-#endif
+      CALL copy_from_zone(nCols, n_aed_vars, cc_diag, active, benth_map)
 
    IF ( ThisStep >= n_equil_substep ) ThisStep = 0
 
@@ -1515,20 +1501,22 @@ CONTAINS
    !-------------------------------------------------------------------------------
    !BEGIN
       nCols = ubound(active, 1)
-      IF ( do_zone_averaging ) THEN
-         CALL aed_initialize_zone_benthic(nCols, active, n_aed_vars, cc_diag, benth_map)
-      ELSE
-         DO col=1, nCols
-            top = surf_map(col)
-            bot = benth_map(col)
-            count = bot-top+1
-            CALL define_column(column, col, cc, cc_diag, flux, flux_atm, flux_ben, flux_rip)
-            DO lev=1, count
-               CALL aed_initialize(column, lev)
-            ENDDO
-            CALL aed_initialize_benthic(column, 1)
+
+      DO col=1, nCols
+         top = surf_map(col)
+         bot = benth_map(col)
+         count = bot-top+1
+         CALL define_column(column, col, cc, cc_diag, flux, flux_atm, flux_ben, flux_rip)
+         DO lev=1, count
+            CALL aed_initialize(column, lev)
          ENDDO
-      ENDIF
+         IF ( .NOT. do_zone_averaging ) &
+            CALL aed_initialize_benthic(column, 1)
+      ENDDO
+
+      IF ( do_zone_averaging ) &
+         CALL aed_initialize_zone_benthic(nCols, active, n_aed_vars, cc_diag, benth_map)
+
       reinited = .TRUE.
    END SUBROUTINE re_initialize
 

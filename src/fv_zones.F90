@@ -78,7 +78,7 @@ MODULE fv_zones
 
    AED_REAL,TARGET :: zone_taub
 
-   INTEGER :: nZones, nwq_var, nben_var
+   INTEGER :: nZones, nwq_var, nben_var, ndiag_var
 
 !#####################################################
 
@@ -170,6 +170,7 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
 
    nwq_var = n_vars
    nben_var = n_vars_ben
+   ndiag_var = n_vars_diag
 END SUBROUTINE init_zones
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -303,6 +304,7 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
 !LOCALS
    INTEGER :: col, zon, bot, v
    AED_REAL :: ta(nwq_var+nben_var)
+   AED_REAL :: da(ndiag_var)
    AED_REAL :: fa
 !
 !-------------------------------------------------------------------------------
@@ -311,17 +313,18 @@ SUBROUTINE copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
    zone_cc_diag = zero_
 
    DO zon=1,nZones
-      ta = 0.
+      ta = 0. ; da = 0.
       DO col=1, nCols
          IF ( active(col) .AND. (zon == zm(col)) ) THEN
             bot = benth_map(col)
             fa = area(col) / zone_area(zon)
-            ta = ta + (cc(1:nwq_var+nben_var,bot) * fa)
 
-            zone_cc_diag(:,zon) = zone_cc_diag(:,zon) + (cc_diag(:,bot) * fa)
+            ta = ta + (cc(1:nwq_var+nben_var,bot) * fa)
+            da = da + (cc_diag(:,bot) * fa)
          ENDIF
       ENDDO
       zone_cc(1:nwq_var+nben_var,zon) = ta
+      zone_cc_diag(:,zon) = da
    ENDDO
 END SUBROUTINE copy_to_zone
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -329,13 +332,11 @@ END SUBROUTINE copy_to_zone
 
 !###############################################################################
 ! Copies the diagnostic variables from the zones to the main data block
-SUBROUTINE copy_from_zone(nCols, n_aed_vars, cc, cc_diag, area, active, benth_map)
+SUBROUTINE copy_from_zone(nCols, n_aed_vars, cc_diag, active, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in)     :: nCols, n_aed_vars
-   AED_REAL,INTENT(inout) :: cc(:,:)       !# (n_vars, n_layers)
    AED_REAL,INTENT(out)   :: cc_diag(:,:)  !# (n_vars, n_layers)
-   AED_REAL,DIMENSION(:),INTENT(in) :: area
    LOGICAL,DIMENSION(:), INTENT(in) :: active
    INTEGER,DIMENSION(:), INTENT(in) :: benth_map
 !
@@ -476,20 +477,23 @@ SUBROUTINE aed_initialize_zone_benthic(nCols, active, n_aed_vars, cc_diag, benth
 !-------------------------------------------------------------------------------
 !BEGIN
    DO zon=1, nZones
+      zone_cc_diag(:,zon) = zero_
+
       CALL define_column_zone(column, zon, n_aed_vars)
 
       CALL aed_initialize_benthic(column, 1)
    ENDDO
 
+   CALL copy_from_zone(nCols, n_aed_vars, cc_diag, active, benth_map)
    !# now copy the diagnostic vars back
-   DO col=1, nCols
-      IF (.NOT. active(col)) CYCLE
+!  DO col=1, nCols
+!     IF (.NOT. active(col)) CYCLE
 
-      bot = benth_map(col)
-      zon = zm(col)
+!     bot = benth_map(col)
+!     zon = zm(col)
 
-      cc_diag(:,bot) = zone_cc_diag(:,zon)
-   ENDDO
+!     cc_diag(:,bot) = zone_cc_diag(:,zon)
+!  ENDDO
 END SUBROUTINE aed_initialize_zone_benthic
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -515,44 +519,6 @@ SUBROUTINE compute_zone_benthic_fluxes(n_aed_vars)
    ENDDO
 !!$OMP END DO
 END SUBROUTINE compute_zone_benthic_fluxes
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!###############################################################################
-#if 0
-SUBROUTINE calculate_zone_benthic_fluxes(nCols, active, n_aed_vars, cc_diag, benth_map)
-!-------------------------------------------------------------------------------
-!ARGUMENTS
-   INTEGER,INTENT(in)   :: nCols
-   LOGICAL,DIMENSION(:),INTENT(in) :: active
-   INTEGER,INTENT(in)   :: n_aed_vars
-   AED_REAL,INTENT(out) :: cc_diag(:,:)
-   INTEGER,DIMENSION(:),INTENT(in) :: benth_map
-!
-!LOCALS
-   INTEGER :: col, zon, bot
-   TYPE (aed_column_t) :: column(n_aed_vars)
-!
-!-------------------------------------------------------------------------------
-!BEGIN
-   flux_pelz = zero_ ; flux_benz = zero_
-   DO zon=1, nZones
-      CALL define_column_zone(column, zon, n_aed_vars)
-
-      CALL aed_calculate_benthic(column, 1, .TRUE.)
-   ENDDO
-
-   !# now copy the diagnostic vars back
-   DO col=1, nCols
-      IF (.NOT. active(col)) CYCLE
-
-      bot = benth_map(col)
-      zon = zm(col)
-
-      cc_diag(:,bot) = zone_cc_diag(:,zon)
-   ENDDO
-END SUBROUTINE calculate_zone_benthic_fluxes
-#endif
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
