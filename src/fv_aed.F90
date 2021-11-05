@@ -1064,7 +1064,7 @@ SUBROUTINE calculate_fluxes(column, count, z, flux_pel, flux_atm, flux_ben, flux
       flux_pel(:,count) = flux_pel(:,count) + flux_pelz(:,z) !/h(count)
 
       !# Calculate temporal derivatives due to benthic exchange processes.
-   !  CALL aed_calculate_benthic(column, count, .FALSE.)
+      CALL aed_calculate_benthic(column, count, .FALSE.)
    ELSE
       CALL aed_calculate_benthic(column, count)
    ENDIF
@@ -1325,8 +1325,12 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
    IF ( do_zone_averaging ) THEN
       !# debug : set diag value on the bottom to the column number
+      !# When doing zone averaging we do the benthic calls before the main column loop
+      !# to get the pelagic fluxes icreated by benthic routiens which are then
+      !# aggregated into the flux values in the call to calculate_fluxes below.
       CALL copy_to_zone(nCols, cc, cc_diag, area, active, benth_map)
       CALL compute_zone_benthic_fluxes(n_aed_vars)
+      CALL copy_from_zone(nCols, n_aed_vars, cc_diag, active, benth_map)
    ENDIF
 
 !!$OMP DO PRIVATE(col,top,bot,aed_active_col,na,lev,i)
@@ -1439,9 +1443,6 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
 !!$OMP BARRIER
 
-   IF ( do_zone_averaging ) &
-      CALL copy_from_zone(nCols, n_aed_vars, cc_diag, active, benth_map)
-
    IF ( ThisStep >= n_equil_substep ) ThisStep = 0
 
    IF ( display_minmax ) THEN
@@ -1519,6 +1520,7 @@ CONTAINS
 
       reinited = .TRUE.
    END SUBROUTINE re_initialize
+   !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 END SUBROUTINE do_aed_models
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2002,25 +2004,29 @@ END MODULE fv_aed
 !    + do settling
 !    + do light
 !
-!    + if zones :
-!      = for each column :
+!  * if zones :
+!      = copy to zones :
 !        z_bottom_cell = z_bottom_cel + bottom_cell * (column area / zone_area)
-!        z_bot_cell_diag = bot_cell_diag
+!        z_bot_cell_diag = bot_cell_diag * (column area / zone_area)
 !      = compute_zone_benthic
+!      = copy_from zones :
+!        - copy zone diag to columns bottom cell diags
 !
+!  * loop through columns :
 !    + ch column
 !      = do_stress
 !      = some stuff
 !      = calc_fluxes
 !        - calc surface flux
-!        - if zone :
+!        - if zones :
 !          # add zone pel-flux to column pel-flux
-!        - else :
+!          # calc benthic fluxes for those models not participating in zones
+!        - else (not zones) :
 !          # calc_benthic fluxes
 !        - divide all pel fluxes by height
 !        - do all pelagics
 !      = Particles again ?
-!      = loop top to bottom apply fluxes
+!      = loop top to bottom applying fluxes
 !
 !      = if zones :
 !        - apply zone fluxes to cells
@@ -2032,7 +2038,4 @@ END MODULE fv_aed
 !
 !      = check states
 !
-!  * if zones :
-!      = copy_from zones :
-!        - copy zone diag to columns bottom cell diags
 !===============================================================================
