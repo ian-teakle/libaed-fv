@@ -286,11 +286,16 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    ! Process each model define/setup block
    DO i=1,size(models)
       IF (models(i)=='') EXIT
+      IF ( do_zone_averaging ) models(i) = TRIM(models(i)) // ':za'
       CALL aed_define_model(models(i), namlst)
    ENDDO
 
    ! Set number of configured variables
    n_aed_vars = aed_core_status(nwq_var, nben_var, ndiag_var, n_sd)
+
+   IF ( .NOT. do_zone_averaging ) &
+      do_zone_averaging = aed_requested_zones(n_aed_vars)
+
    ndiag_var = ndiag_var + n_sd
    n_vars = nwq_var
    n_vars_ben = nben_var
