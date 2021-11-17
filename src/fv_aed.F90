@@ -206,7 +206,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
 !LOCALS
    TYPE(aed_variable_t),POINTER :: tvar
    CHARACTER(len=128)           :: tname
-   INTEGER                      :: status, n_sd, i, j
+   INTEGER                      :: status, n_sd, i, j, tv
 
 !  %% NAMELIST   %%  /aed_models/
    CHARACTER(len=64) :: models(64)
@@ -257,6 +257,33 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    print *, "    initialise aed_core "
    IF ( aed_init_core(dname, .true.) /= 0 ) STOP "Initialisation of aed_core failed"
    CALL aed_print_version
+
+   tv = aed_provide_global( 'temperature', 'temperature' , 'celsius' )
+   tv = aed_provide_global( 'salinity', 'salinity' , 'g/Kg' )
+   tv = aed_provide_global( 'density', 'density' , '' )
+   tv = aed_provide_global( 'layer_ht', 'layer heights' , 'meters' )
+   tv = aed_provide_sheet_global( 'layer_area', 'layer area' , 'm2' )
+   tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
+   tv = aed_provide_sheet_global( 'rainloss', 'rain loss' , 'm/s' )
+   tv = aed_provide_sheet_global( 'material', 'material' , '' )
+   tv = aed_provide_sheet_global( 'bathy', 'bathy' , '' )
+   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '' )
+   tv = aed_provide_global( 'tss', 'tss' , '' )
+   tv = aed_provide_global( 'par', 'par' , '' )
+   tv = aed_provide_global( 'cell_vel', 'cell velocity' , '' )
+   tv = aed_provide_global( 'nir', 'nir' , '' )
+   tv = aed_provide_global( 'uva', 'uva' , '' )
+   tv = aed_provide_global( 'uvb', 'uvb' , '' )
+   tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
+   tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
+   tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
+   tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
+   tv = aed_provide_sheet_global( 'air_temp', 'air temperature' , 'celsius' )
+   tv = aed_provide_sheet_global( 'longwave', 'longwave' , '' )
+   tv = aed_provide_sheet_global( 'col_num', 'column number' , '' )
+   tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '' )
+   tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , '' )
+
    tname = TRIM(dname)//TRIM(aed_nml_file)
    print *,"    reading fv_aed config from ",TRIM(tname)
    OPEN(namlst,file=tname,action='read',status='old',iostat=status)
@@ -999,8 +1026,8 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'longwave' )    ; column(av)%cell_sheet => longwave(col)
             CASE ( 'col_num' )     ; column(av)%cell_sheet => colnums(col)
 
-            CASE ( 'nearest_active' ) ; column(av)%cell_sheet => nearest_active(col);
-            CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => nearest_depth(col);
+            CASE ( 'nearest_active' ) ; column(av)%cell_sheet => nearest_active(col)
+            CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => nearest_depth(col)
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
@@ -1408,18 +1435,18 @@ SUBROUTINE do_aed_models(nCells, nCols)
          ENDDO ! vars
       ENDDO  ! levels
 
-
-      !# add riparian flux
-      IF ( do_zone_averaging ) THEN ! Untested
-         DO i = n_vars+1, n_vars+n_vars_ben
-            cc(i,bot)=cc(i,bot)+dt*flux_benz(i, zm(col))
-         ENDDO ! ben vars
-      ELSE
-         !# if not zones_avg just do benthic flux
-         DO i = n_vars+1, n_vars+n_vars_ben
-           cc(i,bot)=cc(i,bot)+dt*flux_ben(i)
-         ENDDO
-      ENDIF
+  !   !# add riparian flux
+  !   IF ( do_zone_averaging ) THEN ! Untested
+  !      DO i = n_vars+1, n_vars+n_vars_ben
+  !         cc(i,bot)=cc(i,bot)+dt*flux_benz(i, zm(col))
+  !      ENDDO ! ben vars
+  !   ELSE
+  !      !# if not zones_avg just do benthic flux
+  !      DO i = n_vars+1, n_vars+n_vars_ben
+  !        cc(i,bot)=cc(i,bot)+dt*flux_ben(i)
+  !      ENDDO
+  !   ENDIF
+      cc(i,bot)=cc(i,bot)+dt*(flux_ben(i) + flux_benz(i, zm(col)))
 #if DEBUG>1
       DO i = n_vars+1, n_vars+n_vars_ben
          !# check for NaNs

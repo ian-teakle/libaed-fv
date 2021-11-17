@@ -103,7 +103,7 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
 !-------------------------------------------------------------------------------
 !BEGIN
    ALLOCATE(mat_t(nCols)) ; ALLOCATE(zm(nCols))
-   mat_t = 0   ; zm = 0 ; zon = 1
+   mat_t = 0   ; zm = 1 ; zon = 1
    !# The new form of zones
    cType = mat_id(1,1) ; nTypes = 1 ; mat_t(nTypes) = mat_id(1,1)
    DO col=1, ubound(mat_id,2)
@@ -136,6 +136,9 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
    ENDDO
    DEALLOCATE(mat_t)
 
+   ALLOCATE(flux_pelz(n_vars+n_vars_ben, nZones)) ; flux_pelz = 0.
+   ALLOCATE(flux_benz(n_vars+n_vars_ben, nZones)) ; flux_benz = 0.
+
    IF ( .NOT. avg ) RETURN
 
    ALLOCATE(zone_area(nZones))
@@ -164,9 +167,6 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
 
    ALLOCATE(zone_cc(n_vars+n_vars_ben, nZones))
    ALLOCATE(zone_cc_diag(n_vars_diag, nZones))
-
-   ALLOCATE(flux_pelz(n_vars+n_vars_ben, nZones))
-   ALLOCATE(flux_benz(n_vars+n_vars_ben, nZones))
 
    nwq_var = n_vars
    nben_var = n_vars_ben
@@ -414,6 +414,7 @@ SUBROUTINE define_column_zone(column, zon, n_aed_vars)!, n_vars)
             CASE ( 'extc_coef' )   ; column(av)%cell => zone_extc
             CASE ( 'tss' )         ; column(av)%cell => zone_tss
             CASE ( 'par' )         ; column(av)%cell => zone_par
+            CASE ( 'cell_vel' )    ; column(av)%cell => null() ! zone_cvel
             CASE ( 'nir' )         ; column(av)%cell => zone_nir
             CASE ( 'uva' )         ; column(av)%cell => zone_uva
             CASE ( 'uvb' )         ; column(av)%cell => zone_uvb
@@ -426,8 +427,8 @@ SUBROUTINE define_column_zone(column, zon, n_aed_vars)!, n_vars)
             CASE ( 'longwave' )    ; column(av)%cell_sheet => zone_longwave(zon)
             CASE ( 'col_num' )     ; column(av)%cell_sheet => zone_colnums(zon)
 
-       !    CASE ( 'nearest_active' ) ; column(av)%cell_sheet => zone_nearest_active(col);
-       !    CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => zone_nearest_depth(col);
+            CASE ( 'nearest_active' ) ; column(av)%cell_sheet => null() ! zone_nearest_active(col);
+            CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => null() ! zone_nearest_depth(col);
             CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
