@@ -259,30 +259,31 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    CALL aed_print_version
 
    tv = aed_provide_global( 'temperature', 'temperature' , 'celsius' )
-   tv = aed_provide_global( 'salinity', 'salinity' , 'g/Kg' )
-   tv = aed_provide_global( 'density', 'density' , '' )
-   tv = aed_provide_global( 'layer_ht', 'layer heights' , 'meters' )
+   tv = aed_provide_global( 'salinity', 'salinity' , 'g/kg' )
+   tv = aed_provide_global( 'density', 'density' , 'kg/m3' )
+   tv = aed_provide_global( 'layer_ht', 'layer heights' , 'm' )
    tv = aed_provide_sheet_global( 'layer_area', 'layer area' , 'm2' )
    tv = aed_provide_sheet_global( 'rain', 'rainfall' , 'm/s' )
    tv = aed_provide_sheet_global( 'rainloss', 'rain loss' , 'm/s' )
-   tv = aed_provide_sheet_global( 'material', 'material' , '' )
-   tv = aed_provide_sheet_global( 'bathy', 'bathy' , '' )
-   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '' )
-   tv = aed_provide_global( 'tss', 'tss' , '' )
-   tv = aed_provide_global( 'par', 'par' , '' )
-   tv = aed_provide_global( 'cell_vel', 'cell velocity' , '' )
-   tv = aed_provide_global( 'nir', 'nir' , '' )
-   tv = aed_provide_global( 'uva', 'uva' , '' )
-   tv = aed_provide_global( 'uvb', 'uvb' , '' )
-   tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '' )
+   tv = aed_provide_sheet_global( 'material', 'material' , '-' )
+   tv = aed_provide_sheet_global( 'bathy', 'bathy' , 'm above datum' )
+   tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '/m' )
+   tv = aed_provide_global( 'tss', 'tss' , 'g/m3' )
+   tv = aed_provide_global( 'par', 'par' , 'W/m2' )
+   tv = aed_provide_global( 'cell_vel', 'cell velocity' , 'm/s' )
+   tv = aed_provide_global( 'nir', 'nir' , 'W/m2' )
+   tv = aed_provide_global( 'uva', 'uva' , 'W/m2' )
+   tv = aed_provide_global( 'uvb', 'uvb' , 'W/m2' )
+   tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '-' )
    tv = aed_provide_sheet_global( 'wind_speed', 'wind speed' , 'm/s' )
-   tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , '' )
+   tv = aed_provide_sheet_global( 'par_sf', 'par_sf' , 'W/m2' )
    tv = aed_provide_sheet_global( 'taub', 'layer stress' , 'N/m2' )
    tv = aed_provide_sheet_global( 'air_temp', 'air temperature' , 'celsius' )
-   tv = aed_provide_sheet_global( 'longwave', 'longwave' , '' )
-   tv = aed_provide_sheet_global( 'col_num', 'column number' , '' )
-   tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '' )
-   tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , '' )
+   tv = aed_provide_sheet_global( 'longwave', 'longwave' , 'W/m2' )
+   tv = aed_provide_sheet_global( 'col_num', 'column number' , '-' )
+   tv = aed_provide_sheet_global( 'col_depth', 'column water depth' , 'm above bottom' )
+   tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '-' )
+   tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , 'm' )
 
    tname = TRIM(dname)//TRIM(aed_nml_file)
    print *,"    reading fv_aed config from ",TRIM(tname)
@@ -928,6 +929,7 @@ SUBROUTINE check_data
             CASE ( 'humidity' )    ; tvar%found = .true.
             CASE ( 'longwave' )    ; tvar%found = .true.
             CASE ( 'col_num' )     ; tvar%found = .true.
+            CASE ( 'col_depth' )   ; tvar%found = .true.
             CASE ( 'nearest_active' ) ; tvar%found = .true. ; request_nearest = .true.
             CASE ( 'nearest_depth' )  ; tvar%found = .true. ; request_nearest = .true.
          !  CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
@@ -1025,6 +1027,7 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'humidity' )    ; column(av)%cell_sheet => humidity(col)
             CASE ( 'longwave' )    ; column(av)%cell_sheet => longwave(col)
             CASE ( 'col_num' )     ; column(av)%cell_sheet => colnums(col)
+            CASE ( 'col_depth' )   ; column(av)%cell_sheet => z(col)
 
             CASE ( 'nearest_active' ) ; column(av)%cell_sheet => nearest_active(col)
             CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => nearest_depth(col)
@@ -1461,7 +1464,8 @@ SUBROUTINE do_aed_models(nCells, nCols)
       !# now the bgc updates are complete, update links to host model
       CALL BioDrag(column, bot-top+1, bio_drag(col))
       CALL BioExtinction(column, bot-top+1, extcoeff(top:bot))
-      !CALL BioDensity()
+    ! CALL BioBlockage(  aed_bio_blockage_vegetation  )
+    ! CALL BioDensity()
 
       CALL check_states(top, bot)
 !     IF (active(col) .NE. pactive(col)) THEN
