@@ -1401,7 +1401,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
       aed_active_col = active(col)
       IF( h(benth_map(col))<min_water_depth ) aed_active_col = .false.  ! MH TUFLOWFV 4cm dry cells
       IF ( .NOT.  Riparian(column, aed_active_col, shadefrac(col), rainloss(col)) ) THEN
-         IF ( request_nearest ) THEN
+         IF ( request_nearest .AND. allocated(nearest_active) ) THEN
             na = nearest_active(col)
             ! Check for cells that are routed to dry pools
             IF ( h(benth_map(na)) >= min_water_depth ) THEN
