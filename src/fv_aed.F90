@@ -133,6 +133,7 @@ MODULE fv_aed
 
    !# Misc variables/options
    LOGICAL  :: request_nearest = .FALSE.
+   LOGICAL  :: have_nearest = .FALSE.
    LOGICAL  :: reinited = .FALSE.
    INTEGER  :: ThisStep = 0
    INTEGER  :: n_cellids = 0
@@ -258,6 +259,26 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    IF ( aed_init_core(dname, .true.) /= 0 ) STOP "Initialisation of aed_core failed"
    CALL aed_print_version
 
+   tname = TRIM(dname)//TRIM(aed_nml_file)
+   print *,"    reading fv_aed config from ",TRIM(tname)
+   OPEN(namlst,file=tname,action='read',status='old',iostat=status)
+   IF ( status /= 0 ) CALL STOPIT("Cannot open file " // TRIM(tname))
+   READ(namlst,nml=aed_bio,iostat=status)
+   IF ( status /= 0 ) STOP "Cannot read namelist entry aed_bio"
+
+   Kw = base_par_extinction
+   Ksed = tss_par_extinction
+   print *,'    link options configured between TFV & AED - '
+   print *,'        link_ext_par       :  ',link_ext_par
+   print *,'        link_water_clarity :  ',link_water_clarity
+   print *,'        link_surface_drag  :  ',link_surface_drag,' (not implemented)'
+   print *,'        link_bottom_drag   :  ',link_bottom_drag
+   print *,'        link_wave_stress   :  ',link_wave_stress
+   print *,'        link_solar_shade   :  ',link_solar_shade
+   print *,'        link_rain_loss     :  ',link_rain_loss
+   print *,'        link_particle_bgc  :  ',do_particle_bgc,' (under development)'
+   print *,'        link_water_density :  ',link_water_density,' (not implemented)'
+
    tv = aed_provide_global( 'temperature', 'temperature' , 'celsius' )
    tv = aed_provide_global( 'salinity', 'salinity' , 'g/kg' )
    tv = aed_provide_global( 'density', 'density' , 'kg/m3' )
@@ -282,28 +303,10 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    tv = aed_provide_sheet_global( 'longwave', 'longwave' , 'W/m2' )
    tv = aed_provide_sheet_global( 'col_num', 'column number' , '-' )
    tv = aed_provide_sheet_global( 'col_depth', 'column water depth' , 'm above bottom' )
-   tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '-' )
-   tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , 'm' )
-
-   tname = TRIM(dname)//TRIM(aed_nml_file)
-   print *,"    reading fv_aed config from ",TRIM(tname)
-   OPEN(namlst,file=tname,action='read',status='old',iostat=status)
-   IF ( status /= 0 ) CALL STOPIT("Cannot open file " // TRIM(tname))
-   READ(namlst,nml=aed_bio,iostat=status)
-   IF ( status /= 0 ) STOP "Cannot read namelist entry aed_bio"
-
-   Kw = base_par_extinction
-   Ksed = tss_par_extinction
-   print *,'    link options configured between TFV & AED - '
-   print *,'        link_ext_par       :  ',link_ext_par
-   print *,'        link_water_clarity :  ',link_water_clarity
-   print *,'        link_surface_drag  :  ',link_surface_drag,' (not implemented)'
-   print *,'        link_bottom_drag   :  ',link_bottom_drag
-   print *,'        link_wave_stress   :  ',link_wave_stress
-   print *,'        link_solar_shade   :  ',link_solar_shade
-   print *,'        link_rain_loss     :  ',link_rain_loss
-   print *,'        link_particle_bgc  :  ',do_particle_bgc,' (under development)'
-   print *,'        link_water_density :  ',link_water_density,' (not implemented)'
+   IF (route_table_file /= '') THEN
+      tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '-' )
+      tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , 'm' )
+   ENDIF
 
    ! Process input file (aed.nml) to get selected models
    print *,"    reading aed_models config from ",TRIM(tname)
@@ -713,6 +716,7 @@ CONTAINS
 
       IF (ASSOCIATED(csvnames)) DEALLOCATE(csvnames)
       IF (ALLOCATED(values))    DEALLOCATE(values)
+      have_nearest = .TRUE.
    END SUBROUTINE load_route_table
    !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -930,8 +934,8 @@ SUBROUTINE check_data
             CASE ( 'longwave' )    ; tvar%found = .true.
             CASE ( 'col_num' )     ; tvar%found = .true.
             CASE ( 'col_depth' )   ; tvar%found = .true.
-            CASE ( 'nearest_active' ) ; tvar%found = .true. ; request_nearest = .true.
-            CASE ( 'nearest_depth' )  ; tvar%found = .true. ; request_nearest = .true.
+            CASE ( 'nearest_active' ) ; tvar%found = have_nearest ; request_nearest = have_nearest
+            CASE ( 'nearest_depth' )  ; tvar%found = have_nearest ; request_nearest = have_nearest
          !  CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
