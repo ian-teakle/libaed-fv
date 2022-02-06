@@ -71,6 +71,7 @@ MODULE fv_zones
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_I_0
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_longwave
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_colnums
+   AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_coldepth
    INTEGER, DIMENSION(:),  ALLOCATABLE        :: zone_count, zm
 
    AED_REAL,DIMENSION(:,:),ALLOCATABLE,TARGET :: flux_pelz
@@ -125,7 +126,7 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
       ENDIF
       zm(col) = zon
    ENDDO
-   print*,"Number of mats = ", nTypes, " = ", mat_t(1:nTypes)
+   print*,"        material (benthic) zones (", nTypes, " in total) = ", mat_t(1:nTypes)
    nZones = nTypes
 
    ALLOCATE(zone(nZones))
@@ -134,6 +135,7 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
       zone(zon) = mat_t(zon)
       zone_colnums(zon) = zon
    ENDDO
+   ALLOCATE(zone_coldepth(nZones))
    DEALLOCATE(mat_t)
 
    ALLOCATE(flux_pelz(n_vars+n_vars_ben, nZones)) ; flux_pelz = 0.
@@ -176,23 +178,25 @@ END SUBROUTINE init_zones
 
 
 !###############################################################################
-SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, area, wnd, rho,       &
+SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
                            extcoeff, I_0, longwave, par, tss, rain, rainloss,  &
                            air_temp, humidity, bathy, col_taub)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,INTENT(in) :: nCols
    LOGICAL,DIMENSION(:), INTENT(in) :: active
-   AED_REAL,DIMENSION(:),INTENT(in) :: temp, salt, h, area, wnd, rain
+   AED_REAL,DIMENSION(:),INTENT(in) :: temp, salt, h, z, area, wnd, rain
    AED_REAL,DIMENSION(:),INTENT(in) :: rho, extcoeff, I_0, longwave, par, tss
    AED_REAL,DIMENSION(:),INTENT(in) :: rainloss, air_temp, humidity, bathy
    AED_REAL :: col_taub
 !
 !LOCALS
    INTEGER :: col, zon
+   INTEGER :: dbg = 29
 !
 !-------------------------------------------------------------------------------
 !BEGIN
+
    zone_area = zero_
    zone_temp = zero_
    zone_salt = zero_
@@ -210,20 +214,26 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, area, wnd, rho,       &
    zone_I_0 = zero_
    zone_longwave = zero_
    zone_taub = col_taub
+   zone_coldepth = one_
    zone_count = 0
 
+   ! loop thru all columns in the mesh
    DO col=1, nCols
+      ! zone number of this column
       zon = zm(col)
-! if (zone(zon) == 11) &
-! print*,"ZoneIDX ",zon," zone = ",zone(zon)," Col ",col," area col ",area(col),"TEMP ",temp(col)," is ",active(col)
 
+    ! if (zone(zon) == 11) &
+    ! print*,"ZoneIDX ",zon," zone = ",zone(zon)," Col ",col," area col ",area(col),"TEMP ",temp(col)," is ",active(col)
       IF (.NOT. active(col)) CYCLE
 
+      ! cumulate column into relevant zone vars
       zone_area(zon)     = zone_area(zon) + area(col)
+
       zone_temp(zon)     = zone_temp(zon) + temp(col)
       zone_salt(zon)     = zone_salt(zon) + salt(col)
       zone_rho(zon)      = zone_rho(zon) + rho(col)
       zone_height(zon)   = zone_height(zon) + h(col)
+      zone_coldepth(zon) = zone_coldepth(zon) + z(col)
       zone_extc(zon)     = zone_extc(zon) + extcoeff(col)
       zone_tss(zon)      = zone_tss(zon) + tss(col)
       zone_par(zon)      = zone_par(zon) + par(col)
@@ -235,36 +245,39 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, area, wnd, rho,       &
       zone_bathy(zon)    = zone_bathy(zon) + bathy(col)
       zone_I_0(zon)      = zone_I_0(zon) + I_0(col)
       zone_longwave(zon) = zone_longwave(zon) + longwave(col)
-!     zone_taub(zon)     = zone_taub(zon) + col_taub
+     !zone_taub(zon)     = zone_taub(zon) + col_taub
 
+     ! increment column count
       zone_count(zon) = zone_count(zon) + 1
    ENDDO
 
-   zone_temp = zone_temp / zone_count
-   zone_salt = zone_salt / zone_count
+   ! finalise the average zone environment values (divide sum by count)
+                                                 IF (dbg) print *,'     zone_count: ',zone_count(dbg)
+   zone_bathy    =    zone_bathy / zone_count ;  IF (dbg) print *,'     zone_bathy: ',zone_bathy(dbg)
+   zone_coldepth = zone_coldepth / zone_count ;  IF (dbg) print *,'     zone_coldepth: ',zone_coldepth(dbg)
+  !zone_height   =   zone_height / zone_count    !MH this seems to be missing so just cumulating
+   zone_I_0      =      zone_I_0 / zone_count ;  IF (dbg) print *,'     zone_I_0: ',zone_I_0(dbg)
+   zone_wind     =     zone_wind / zone_count ;  IF (dbg) print *,'     zone_wind: ',zone_wind(dbg)
+   zone_rain     =     zone_rain / zone_count ;  IF (dbg) print *,'     zone_rain: ',zone_rain(dbg)
+   zone_rainloss = zone_rainloss / zone_count ;  IF (dbg) print *,'     zone_rainloss: ',zone_rainloss(dbg)
+   zone_air_temp = zone_air_temp / zone_count ;  IF (dbg) print *,'     zone_air_temp: ',zone_air_temp(dbg)
+   zone_humidity = zone_humidity / zone_count ;  IF (dbg) print *,'     zone_humidity: ',zone_humidity(dbg)
+   zone_longwave = zone_longwave / zone_count ;  IF (dbg) print *,'     zone_longwave: ',zone_longwave(dbg)
+   zone_temp     =     zone_temp / zone_count ;  IF (dbg) print *,'     zone_temp: ',zone_temp(dbg)
+   zone_salt     =     zone_salt / zone_count ;  IF (dbg) print *,'     zone_salt: ',zone_salt(dbg)
+   zone_rho      =      zone_rho / zone_count ;  IF (dbg) print *,'     zone_rho: ',zone_rho(dbg)
+   zone_extc     =     zone_extc / zone_count ;  IF (dbg) print *,'     zone_extc: ',zone_extc(dbg)
+  !zone_taub     =     zone_taub / zone_count   !MH also seems to be missing but NOT cumulating
+   zone_tss      =      zone_tss / zone_count ;  IF (dbg) print *,'     zone_tss: ',zone_tss(dbg)
+   zone_par      =      zone_par / zone_count ;  IF (dbg) print *,'     zone_par: ',zone_par(dbg)
+   zone_nir      =     (zone_par/0.45) * 0.510
+   zone_uva      =     (zone_par/0.45) * 0.035
+   zone_uvb      =     (zone_par/0.45) * 0.005
 
-   zone_rho  =  zone_rho / zone_count
-   zone_extc = zone_extc / zone_count
-   zone_tss  =  zone_tss / zone_count
-   zone_par  =  zone_par / zone_count
 
-   !# non-PAR light fudge
-   zone_nir = (zone_par/0.45) * 0.510
-   zone_uva = (zone_par/0.45) * 0.035
-   zone_uvb = (zone_par/0.45) * 0.005
-
-   zone_wind     =     zone_wind / zone_count
-   zone_rain     =     zone_rain / zone_count
-   zone_rainloss = zone_rainloss / zone_count
-   zone_air_temp = zone_air_temp / zone_count
-   zone_humidity = zone_humidity / zone_count
-   zone_bathy    =    zone_bathy / zone_count
-   zone_I_0      =      zone_I_0 / zone_count
-   zone_longwave = zone_longwave / zone_count
-!  zone_taub     =     zone_taub / zone_count
-
+   ! clean empty zones   !MH THERE WILL BE A DIVEDE BY ZERO BEFORE THIS, ABOVE.
    do zon=1,nZones
-! print*,"zoneidx ",zon," zone ",zone(zon)," count ",zone_count(zon)
+     !print *,"zoneidx ",zon," zone ",zone(zon)," count ",zone_count(zon)
       if (zone_count(zon) == 0) then
          zone_area(zon)     = 0.0
          zone_temp(zon)     = 0.0
@@ -282,10 +295,9 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, area, wnd, rho,       &
          zone_bathy(zon)    = 0.0
          zone_I_0(zon)      = 0.0
          zone_longwave(zon) = 0.0
-!        zone_taub(zon)     = 0.0
+        !zone_taub(zon)     = 0.0
       endif
    end do
-! pause
 END SUBROUTINE calc_zone_areas
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -331,7 +343,7 @@ END SUBROUTINE copy_to_zone
 
 
 !###############################################################################
-! Copies the diagnostic variables from the zones to the main data block
+! Copies the (sheet, diagnostic) variables from the zones to the main data block
 SUBROUTINE copy_from_zone(nCols, n_aed_vars, cc_diag, active, benth_map)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -426,10 +438,11 @@ SUBROUTINE define_column_zone(column, zon, n_aed_vars)!, n_vars)
             CASE ( 'humidity' )    ; column(av)%cell_sheet => zone_humidity(zon)
             CASE ( 'longwave' )    ; column(av)%cell_sheet => zone_longwave(zon)
             CASE ( 'col_num' )     ; column(av)%cell_sheet => zone_colnums(zon)
+            CASE ( 'col_depth' )   ; column(av)%cell_sheet => zone_coldepth(zon)
 
             CASE ( 'nearest_active' ) ; column(av)%cell_sheet => null() ! zone_nearest_active(col);
             CASE ( 'nearest_depth' )  ; column(av)%cell_sheet => null() ! zone_nearest_depth(col);
-            CASE DEFAULT ; CALL STOPIT("ERROR: external variable "//trim(tvar%name)//" not found.")
+            CASE DEFAULT ; CALL STOPIT("ERROR: external variable : "//trim(tvar%name)//" : not found when setting zone environment")
          END SELECT
       ELSEIF ( tvar%diag ) THEN  !# Diagnostic variable
          d = d + 1

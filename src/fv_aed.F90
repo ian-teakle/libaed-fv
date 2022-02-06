@@ -31,7 +31,7 @@
 
 #include "aed.h"
 
-#define FV_AED_VERS "1.4.0a"
+#define FV_AED_VERS "1.5.0a"
 
 #ifndef DEBUG
 #define DEBUG      0
@@ -193,8 +193,9 @@ CONTAINS
 !###############################################################################
 SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,bennames,diagnames)
 !-------------------------------------------------------------------------------
-! This routine is called by TuflowFV to define numbers and names of variables.
-! TuflowFV will allocate the variables after return from this routine.
+! This routine is called by the AED library host (TUFLOW-FV) to define numbers
+! and names of variables. The host must then allocate the variables arrays
+! after return from this routine.
 !-------------------------------------------------------------------------------
 !ARGUMENTS
    INTEGER,          INTENT(in)  :: namlst
@@ -206,12 +207,10 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
 !
 !LOCALS
    TYPE(aed_variable_t),POINTER :: tvar
-   CHARACTER(len=128)           :: tname
+   CHARACTER(len=128)           :: tname, line
    INTEGER                      :: status, n_sd, i, j, tv
 
-!  %% NAMELIST   %%  /aed_models/
    CHARACTER(len=64) :: models(64)
-!  %% END NAMELIST   %%  /aed_models/
 
    NAMELIST /aed_models/ models
 
@@ -232,27 +231,27 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    print *, " "
    print *, "    using fv_aed version ", TRIM(FV_AED_VERS)
 
-   ! Set default AED2 link options
-   aed_nml_file = 'aed.nml'
-   solution_method = 1
-   link_bottom_drag = .false.
-   link_surface_drag = .false.
-   link_water_density = .false.
-   link_water_clarity = .false.
-   link_solar_shade = .true.
-   link_rain_loss = .false.
-   link_ext_par = .false.
+   ! Set default AED link options
+   aed_nml_file        = 'aed.nml'
+   solution_method     = 1
+   link_bottom_drag    = .false.
+   link_surface_drag   = .false.
+   link_water_density  = .false.
+   link_water_clarity  = .false.
+   link_solar_shade    = .true.
+   link_rain_loss      = .false.
+   link_ext_par        = .false.
    base_par_extinction = 0.1
-   ext_tss_extinction = .false.
-   tss_par_extinction = 0.02
-   do_2d_atm_flux = .TRUE.
-   do_limiter = .false.
-   no_glob_lim = .false.
-   do_particle_bgc = .false.
-   min_water_depth = 0.0401
-   link_wave_stress = .false.
-   display_minmax = .false.
-   display_cellid = -99
+   ext_tss_extinction  = .false.
+   tss_par_extinction  = 0.02
+   do_2d_atm_flux      = .TRUE.
+   do_limiter          = .false.
+   no_glob_lim         = .false.
+   do_particle_bgc     = .false.
+   min_water_depth     = 0.0401
+   link_wave_stress    = .false.
+   display_minmax      = .false.
+   display_cellid      = -99
 
    ! Process input file (aed.nml) to get run options
    print *, "    initialise aed_core "
@@ -303,10 +302,10 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    tv = aed_provide_sheet_global( 'longwave', 'longwave' , 'W/m2' )
    tv = aed_provide_sheet_global( 'col_num', 'column number' , '-' )
    tv = aed_provide_sheet_global( 'col_depth', 'column water depth' , 'm above bottom' )
-   IF (route_table_file /= '') THEN
-      tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '-' )
-      tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , 'm' )
-   ENDIF
+!   IF (route_table_file /= '') THEN
+!      tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '-' )
+!      tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , 'm' )
+!   ENDIF
 
    ! Process input file (aed.nml) to get selected models
    print *,"    reading aed_models config from ",TRIM(tname)
@@ -314,24 +313,37 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    READ(namlst, nml=aed_models, iostat=status)
    IF ( status /= 0 ) STOP "Cannot read namelist entry aed_models"
 
+  !print *,'s',route_table_file
+   IF (route_table_file /= '') THEN
+      tv = aed_provide_sheet_global( 'nearest_active', 'nearest active' , '-' )
+      tv = aed_provide_sheet_global( 'nearest_depth', 'nearest depth' , 'm' )
+   ENDIF
+
    ! Process each model define/setup block
+   print *,"    start aed_model_factory for (upto) ",size(models),"models"  ! MH limit to non-blank entries
    DO i=1,size(models)
       IF (models(i)=='') EXIT
-      IF ( do_zone_averaging ) models(i) = TRIM(models(i)) // ':za'
-      CALL aed_define_model(models(i), namlst)
+      IF ( do_zone_averaging ) models(i) = TRIM(models(i)) // ':za' ! make all models zone averaged
+      !CALL aed_define_model(models(i), namlst)
+      CALL aed_model_factory(models(i), namlst)
    ENDDO
+   print *,"    aed_model_factory successful"
 
    ! Set number of configured variables
    n_aed_vars = aed_core_status(nwq_var, nben_var, ndiag_var, n_sd)
-
-   IF ( .NOT. do_zone_averaging ) &
-      do_zone_averaging = aed_requested_zones(n_aed_vars)
+   print *,"    aed config details written to aed_config.log"
 
    ndiag_var = ndiag_var + n_sd
    n_vars = nwq_var
    n_vars_ben = nben_var
    n_vars_diag = ndiag_var
    n_vars_diag_sheet = n_sd
+
+   ! Check for modules requested to have zone averaging enabled (":za")
+   IF ( .NOT. do_zone_averaging ) &
+      do_zone_averaging = aed_requested_zones(n_aed_vars)
+
+   print *,"    aed benthic zone averaging status: ",do_zone_averaging
 
 #if DEBUG
    DO i=1,n_aed_vars
@@ -358,7 +370,7 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
 
    ALLOCATE(min_(1:nwq_var+nben_var)) ; ALLOCATE(max_(1:nwq_var+nben_var))
 
-   print *,"    configured variables - "
+   print *,"    configured variable set - "
    j = 0
    DO i=1,n_aed_vars
       IF ( aed_get_var(i, tvar) ) THEN
@@ -371,7 +383,8 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
             names(j) = TRIM(tvar%name)
             min_(j) = tvar%minimum
             max_(j) = tvar%maximum
-            print *,"     S(",j,") AED pelagic(3D) variable: ", TRIM(names(j))
+            line = '' ; IF(tvar%zavg) line = '  (zavg)'
+            print *,"     S(",j,") AED pelagic(3D) variable: ", TRIM(names(j))//TRIM(line)
          ENDIF
       ENDIF
    ENDDO
@@ -388,7 +401,8 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
             bennames(j) = TRIM(tvar%name)
             min_(nwq_var+j) = tvar%minimum
             max_(nwq_var+j) = tvar%maximum
-            print *,"     B(",j,") AED benthic(2D) variable: ", TRIM(bennames(j))
+            line = '' ; IF(tvar%zavg) line = '  (zavg)'
+            print *,"     B(",j,") AED benthic(2D) variable: ", TRIM(bennames(j))//TRIM(line)
          ENDIF
       ENDIF
    ENDDO
@@ -403,7 +417,8 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
                 EXIT
             ENDIF
             diagnames(j) = TRIM(tvar%name)
-            print *,"     D(",j,") AED diagnostic variable:  ", TRIM(diagnames(j))
+            line = '' ; IF(tvar%zavg) line = '  (zavg)'
+            print *,"     D(",j,") AED diagnostic variable:  ", TRIM(diagnames(j))//TRIM(line)
          ENDIF
       ENDIF
    ENDDO
@@ -424,7 +439,7 @@ END SUBROUTINE init_aed_models
 !###############################################################################
 SUBROUTINE init_var_aed_models(nCells, cc_, cc_diag_, nwq, nwqben, sm, bm)
 !-------------------------------------------------------------------------------
-! Points the AED2 main variable arrays to those provided by the host model.
+! Points the AED main variable arrays to those provided by the host model.
 ! At this point TuflowFV should have allocated the variable space.
 !-------------------------------------------------------------------------------
 !ARGUMENTS
@@ -449,7 +464,7 @@ SUBROUTINE init_var_aed_models(nCells, cc_, cc_diag_, nwq, nwqben, sm, bm)
    surf_map => sm
    benth_map => bm
 
-   ! Allocate state variable array
+   ! Allocate state and diagnostic variable arrays
    IF ( .NOT. ASSOCIATED(cc) ) STOP ' ERROR : no association for (cc)'
    cc = 0.
 
@@ -457,7 +472,6 @@ SUBROUTINE init_var_aed_models(nCells, cc_, cc_diag_, nwq, nwqben, sm, bm)
    cc_diag = 0.
 
    ! Allocate array with vertical movement rates (m/s, positive for upwards)
-   ! These will be set the values provided by the modules
    ALLOCATE(ws(1:nCells,1:n_aed_vars),stat=rc)
    IF (rc /= 0) STOP 'allocate_memory(): ERROR allocating (ws)'
    ws = 0.
@@ -566,7 +580,7 @@ CONTAINS
    !----------------------------------------------------------------------------
       unit = aed_csv_read_header(init_values_file, csvnames, nccols)
       IF (unit <= 0) RETURN !# No file found
-      print *,'    spatial AED2 var initialisation from file: '
+      print *,'    benthic AED var initialisation from file: '
       print *,'        ', TRIM(init_values_file)
 
       DO ccol=1,nccols
@@ -643,8 +657,7 @@ CONTAINS
          ENDDO
       ENDIF
 
-      meh = aed_csv_close(unit)
-      !# don't care if close fails
+      meh = aed_csv_close(unit) !# don't care if close fails
 
       IF (ASSOCIATED(csvnames)) DEALLOCATE(csvnames)
       IF (ALLOCATED(values))    DEALLOCATE(values)
@@ -675,19 +688,20 @@ CONTAINS
       IF (unit <= 0) RETURN !# No file found
       print *,'    riparian cell routing set from file: '
       print *,'        ', TRIM(route_table_file)
-!# The format of the file should be me, "lowest ajoining" - ie always 2 colums
-!# and always in the order - and we dont really care about the header, but being
-!# csv it should have it so we read but ignore it.
-!     DO ccol=1,nccols
-!        IF ( csvnames(ccol) == "ID" ) THEN
-!           idx_col = ccol
-!           EXIT
-!        ENDIF
-!     ENDDO
-!     IF (idx_col == 0) THEN
-!        print*,"Could not find column 'ID'"
-!        RETURN
-!     ENDIF
+
+   !# The format of the file should be me, "lowest ajoining" - ie always 2 colums
+   !# and always in the order - and we dont really care about the header, but
+   !# being csv it should have it so we read but ignore it.
+   !     DO ccol=1,nccols
+   !        IF ( csvnames(ccol) == "ID" ) THEN
+   !           idx_col = ccol
+   !           EXIT
+   !        ENDIF
+   !     ENDDO
+   !     IF (idx_col == 0) THEN
+   !        print*,"Could not find column 'ID'"
+   !        RETURN
+   !     ENDIF
       idx_col = 1
 
       ALLOCATE(values(nccols))
@@ -711,8 +725,7 @@ CONTAINS
       IF ( crow < nrows ) &
       print*, "        NOTE: routing table has less rows than expected? ",crow,"/",nrows
 
-      meh = aed_csv_close(unit)
-      !# don't care if close fails
+      meh = aed_csv_close(unit)  !# don't care if close fails
 
       IF (ASSOCIATED(csvnames)) DEALLOCATE(csvnames)
       IF (ALLOCATED(values))    DEALLOCATE(values)
@@ -1249,7 +1262,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
       ELSE
          tpar => par
       ENDIF
-      CALL calc_zone_areas(nCols, active, temp, salt, h, area, wnd, rho,       &
+      CALL calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
                  extcoeff, I_0, longwave, tpar, tss, rain, rainloss, air_temp, &
                  humidity, bathy, col_taub)
    ENDIF
