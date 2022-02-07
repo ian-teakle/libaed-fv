@@ -320,14 +320,13 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    ENDIF
 
    ! Process each model define/setup block
-   print *,"    start aed_model_factory for (upto) ",size(models),"models"  ! MH limit to non-blank entries
+   print *,"    start aed_define_model for (upto) ",size(models),"models"  ! MH limit to non-blank entries
    DO i=1,size(models)
       IF (models(i)=='') EXIT
       IF ( do_zone_averaging ) models(i) = TRIM(models(i)) // ':za' ! make all models zone averaged
-      !CALL aed_define_model(models(i), namlst)
-      CALL aed_model_factory(models(i), namlst)
+      CALL aed_define_model(models(i), namlst)
    ENDDO
-   print *,"    aed_model_factory successful"
+   print *,"    aed_define_model successful"
 
    ! Set number of configured variables
    n_aed_vars = aed_core_status(nwq_var, nben_var, ndiag_var, n_sd)
