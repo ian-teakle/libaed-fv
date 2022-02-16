@@ -289,9 +289,13 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
    tv = aed_provide_sheet_global( 'bathy', 'bathy' , 'm above datum' )
    tv = aed_provide_global( 'extc_coef', 'extinction coefficient' , '/m' )
    tv = aed_provide_global( 'tss', 'tss' , 'g/m3' )
-   tv = aed_provide_global( 'par', 'par' , 'W/m2' )
+   tv = aed_provide_global( 'ss1', 'ss1' , 'g/m3' )
+   tv = aed_provide_global( 'ss2', 'ss2' , 'g/m3' )
+   tv = aed_provide_global( 'ss3', 'ss3' , 'g/m3' )
+   tv = aed_provide_global( 'ss4', 'ss4' , 'g/m3' )
    tv = aed_provide_global( 'cell_vel', 'cell velocity' , 'm/s' )
    tv = aed_provide_global( 'nir', 'nir' , 'W/m2' )
+   tv = aed_provide_global( 'par', 'par' , 'W/m2' )
    tv = aed_provide_global( 'uva', 'uva' , 'W/m2' )
    tv = aed_provide_global( 'uvb', 'uvb' , 'W/m2' )
    tv = aed_provide_sheet_global( 'sed_zone', 'sediment zone' , '-' )
@@ -932,9 +936,13 @@ SUBROUTINE check_data
             CASE ( 'bathy' )       ; tvar%found = .true.
             CASE ( 'extc_coef' )   ; tvar%found = .true.
             CASE ( 'tss' )         ; tvar%found = .true.
-            CASE ( 'par' )         ; tvar%found = .true.
+            CASE ( 'ss1' )         ; tvar%found = .true.
+            CASE ( 'ss2' )         ; tvar%found = .true.
+            CASE ( 'ss3' )         ; tvar%found = .true.
+            CASE ( 'ss4' )         ; tvar%found = .true.
             CASE ( 'cell_vel' )    ; tvar%found = .true.
             CASE ( 'nir' )         ; tvar%found = .true.
+            CASE ( 'par' )         ; tvar%found = .true.
             CASE ( 'uva' )         ; tvar%found = .true.
             CASE ( 'uvb' )         ; tvar%found = .true.
             CASE ( 'sed_zone' )    ; tvar%found = .true.
@@ -1026,13 +1034,17 @@ SUBROUTINE define_column(column, col, cc, cc_diag, flux_pel, flux_atm, flux_ben,
             CASE ( 'bathy' )       ; column(av)%cell_sheet => bathy(col)
             CASE ( 'extc_coef' )   ; column(av)%cell => extcoeff(top:bot)
             CASE ( 'tss' )         ; column(av)%cell => tss(top:bot)
+            CASE ( 'ss1' )         ; column(av)%cell => tss(top:bot)   !   For FV API 2.0 (To be connected to sed_conc)
+            CASE ( 'ss2' )         ; column(av)%cell => tss(top:bot)   !   For FV API 2.0 (To be connected to sed_conc)
+            CASE ( 'ss3' )         ; column(av)%cell => tss(top:bot)   !   For FV API 2.0 (To be connected to sed_conc)
+            CASE ( 'ss4' )         ; column(av)%cell => tss(top:bot)   !   For FV API 2.0 (To be connected to sed_conc)
+            CASE ( 'cell_vel' )    ; column(av)%cell => cvel(top:bot)
+            CASE ( 'nir' )         ; column(av)%cell => nir(top:bot)
             CASE ( 'par' )         ; IF (link_ext_par) THEN
                                         column(av)%cell => lpar(top:bot)
                                      ELSE
                                         column(av)%cell => par(top:bot)
                                      ENDIF
-            CASE ( 'cell_vel' )    ; column(av)%cell => cvel(top:bot)
-            CASE ( 'nir' )         ; column(av)%cell => nir(top:bot)
             CASE ( 'uva' )         ; column(av)%cell => uva(top:bot)
             CASE ( 'uvb' )         ; column(av)%cell => uvb(top:bot)
             CASE ( 'sed_zone' )    ; column(av)%cell_sheet => zone(zm(col))
@@ -1503,13 +1515,13 @@ SUBROUTINE do_aed_models(nCells, nCols)
          IF ( aed_get_var(i, tv) ) THEN
             IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
                v = v + 1
-               WRITE(*,'(1X,"VarLims: ",I0,1X,"<=> ",f15.8,f15.8," : ",A)') &
-                                          v,MINVAL(cc(v,:)),MAXVAL(cc(v,:)),TRIM(tv%name)
+               WRITE(*,'(1X,"VarLims: ",I0,1X,"<=> ",f15.8,f15.8," : ",A," (",A,")")') &
+                                          v,MINVAL(cc(v,:)),MAXVAL(cc(v,:)),TRIM(tv%name),TRIM(tv%units)
                !print *,'VarLims',v,TRIM(tv%name),MINVAL(cc(v,:)),MAXVAL(cc(v,:))
             ELSE IF ( tv%diag .AND. .NOT. no_glob_lim ) THEN
                d = d + 1
-               WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ",A)') &
-                                          d,MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:)),TRIM(tv%name)
+               WRITE(*,'(1X,"DiagLim: ",I0,1X,"<=> ",f15.8,f15.8," : ",A," (",A,")")') &
+                                          d,MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:)),TRIM(tv%name),TRIM(tv%units)
                !print *,'DiagLim',d,TRIM(tv%name),MINVAL(cc_diag(d,:)),MAXVAL(cc_diag(d,:))
             ENDIF
          ENDIF
@@ -1526,7 +1538,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
                d = d + 1
             ENDIF
             DO j = 1, n_cellids
-               lev = display_cellid(j)
+               lev = display_cellid(j)   !MH this is the 3D cell, we should make surface cell of 2D column to link to SMS
                IF ( .NOT. (tv%diag .OR. tv%extern) ) THEN
                   WRITE(*,'(1X,"Var: ",I0,1X,"<=> ",f15.8,f15.8," : ",A, " cell: ",f15.8)') &
                               v,MINVAL(cc(v,:)),MAXVAL(cc(v,:)),TRIM(tv%name), cc(v,lev)

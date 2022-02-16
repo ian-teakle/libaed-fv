@@ -58,6 +58,7 @@ MODULE fv_zones
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_height
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_extc
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_tss
+   AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_ss1,zone_ss2,zone_ss3,zone_ss4
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_par
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_nir
    AED_REAL,DIMENSION(:),  ALLOCATABLE,TARGET :: zone_uva
@@ -151,6 +152,10 @@ SUBROUTINE init_zones(nCols, mat_id, avg, n_vars, n_vars_ben, n_vars_diag)
 
    ALLOCATE(zone_extc(nZones))
    ALLOCATE(zone_tss(nZones))
+   ALLOCATE(zone_ss1(nZones))
+   ALLOCATE(zone_ss2(nZones))
+   ALLOCATE(zone_ss3(nZones))
+   ALLOCATE(zone_ss4(nZones))
    ALLOCATE(zone_par(nZones))
    ALLOCATE(zone_nir(nZones))
    ALLOCATE(zone_uva(nZones))
@@ -192,7 +197,7 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
 !
 !LOCALS
    INTEGER :: col, zon
-   INTEGER :: dbg = 29
+   INTEGER :: dbg = 0 !29
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -204,6 +209,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
    zone_height = zero_
    zone_extc   = zero_
    zone_tss = zero_
+   zone_ss1 = zero_
+   zone_ss2 = zero_
+   zone_ss3 = zero_
+   zone_ss4 = zero_
    zone_par = zero_
    zone_wind = zero_
    zone_rain = zero_
@@ -236,6 +245,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
       zone_coldepth(zon) = zone_coldepth(zon) + z(col)
       zone_extc(zon)     = zone_extc(zon) + extcoeff(col)
       zone_tss(zon)      = zone_tss(zon) + tss(col)
+      zone_ss1(zon)      = zone_ss1(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
+      zone_ss2(zon)      = zone_ss2(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
+      zone_ss3(zon)      = zone_ss3(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
+      zone_ss4(zon)      = zone_ss4(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
       zone_par(zon)      = zone_par(zon) + par(col)
       zone_wind(zon)     = zone_wind(zon) + wnd(col)
       zone_rain(zon)     = zone_rain(zon) + rain(col)
@@ -270,9 +283,9 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
   !zone_taub     =     zone_taub / zone_count   !MH also seems to be missing but NOT cumulating
    zone_tss      =      zone_tss / zone_count ;  IF (dbg) print *,'     zone_tss: ',zone_tss(dbg)
    zone_par      =      zone_par / zone_count ;  IF (dbg) print *,'     zone_par: ',zone_par(dbg)
-   zone_nir      =     (zone_par/0.45) * 0.510
-   zone_uva      =     (zone_par/0.45) * 0.035
-   zone_uvb      =     (zone_par/0.45) * 0.005
+   zone_nir      =     (zone_par/0.45) * 0.510  !   For FV API 2.0 (To be dynamics)
+   zone_uva      =     (zone_par/0.45) * 0.035  !   For FV API 2.0 (To be dynamics)
+   zone_uvb      =     (zone_par/0.45) * 0.005  !   For FV API 2.0 (To be dynamics)
 
 
    ! clean empty zones   !MH THERE WILL BE A DIVEDE BY ZERO BEFORE THIS, ABOVE.
@@ -286,6 +299,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
          zone_height(zon)   = 0.0
          zone_extc(zon)     = 0.0
          zone_tss(zon)      = 0.0
+         zone_ss1(zon)      = 0.0
+         zone_ss2(zon)      = 0.0
+         zone_ss3(zon)      = 0.0
+         zone_ss4(zon)      = 0.0
          zone_par(zon)      = 0.0
          zone_wind(zon)     = 0.0
          zone_rain(zon)     = 0.0
@@ -425,9 +442,13 @@ SUBROUTINE define_column_zone(column, zon, n_aed_vars)!, n_vars)
             CASE ( 'bathy' )       ; column(av)%cell_sheet => zone_bathy(zon)
             CASE ( 'extc_coef' )   ; column(av)%cell => zone_extc
             CASE ( 'tss' )         ; column(av)%cell => zone_tss
-            CASE ( 'par' )         ; column(av)%cell => zone_par
+            CASE ( 'ss1' )         ; column(av)%cell => zone_ss1
+            CASE ( 'ss2' )         ; column(av)%cell => zone_ss2
+            CASE ( 'ss3' )         ; column(av)%cell => zone_ss3
+            CASE ( 'ss4' )         ; column(av)%cell => zone_ss4
             CASE ( 'cell_vel' )    ; column(av)%cell => null() ! zone_cvel
             CASE ( 'nir' )         ; column(av)%cell => zone_nir
+            CASE ( 'par' )         ; column(av)%cell => zone_par
             CASE ( 'uva' )         ; column(av)%cell => zone_uva
             CASE ( 'uvb' )         ; column(av)%cell => zone_uvb
             CASE ( 'sed_zone' )    ; column(av)%cell_sheet => zone(zon)
