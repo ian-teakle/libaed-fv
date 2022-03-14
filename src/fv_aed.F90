@@ -180,6 +180,11 @@ MODULE fv_aed
 
    LOGICAL  :: display_minmax = .FALSE.
    INTEGER  :: display_cellid(10) = -99
+
+   AED_REAL :: nir_frac =  0.52   ! 0.51
+   AED_REAL :: par_frac =  0.43   ! 0.45
+   AED_REAL :: uva_frac =  0.048  ! 0.035
+   AED_REAL :: uvb_frac =  0.002  ! 0.005
 !  %% END NAMELIST   %%  /aed_bio/
 
    !# Integers storing number of variables being simulated
@@ -224,7 +229,8 @@ SUBROUTINE init_aed_models(namlst,dname,nwq_var,nben_var,ndiag_var,names,benname
                       do_limiter, glob_min, glob_max, no_glob_lim,             &
                       route_table_file, n_equil_substep, min_water_depth,      &
                       link_wave_stress, wave_factor, display_minmax,           &
-                      display_cellid
+                      display_cellid, &
+                      nir_frac,par_frac,uva_frac,uvb_frac
 !
 !-------------------------------------------------------------------------------
 !BEGIN
@@ -1263,10 +1269,11 @@ SUBROUTINE do_aed_models(nCells, nCols)
 
    IF ( request_nearest ) CALL fill_nearest(nCols)
 
-   IF ( .NOT. reinited ) CALL re_initialize()
+   IF ( .NOT. reinited )  CALL re_initialize()
 
    ThisStep = ThisStep + 1
 
+   ! if zone averaged module is running, create zone environment variables
    IF ( do_zone_averaging ) THEN
       IF (link_ext_par) THEN
          tpar => lpar
@@ -1274,10 +1281,11 @@ SUBROUTINE do_aed_models(nCells, nCols)
          tpar => par
       ENDIF
       CALL calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
-                 extcoeff, I_0, longwave, tpar, tss, rain, rainloss, air_temp, &
-                 humidity, bathy, col_taub)
+                   extcoeff, I_0, longwave, nir, tpar, uva, uvb, tss, rain,    &
+                   rainloss, air_temp, humidity, bathy, col_taub)
    ENDIF
 
+   ! if bio-active particles are running, update particle data
    IF (do_particle_bgc) THEN
       DO i=1, size(all_particles)
          IF (ALLOCATED(all_particles(i)%prt)) DEALLOCATE(all_particles(i)%prt)
@@ -1374,13 +1382,18 @@ SUBROUTINE do_aed_models(nCells, nCols)
       CALL check_states(top, bot)
 
       !# populate local light/extc arrays one column at a time
-      IF (.NOT. link_ext_par) &  !#MH check link_ext_par logic
+      IF (.NOT. link_ext_par) THEN
          CALL Light(column, bot-top+1, I_0(col), extcoeff(top:bot), par(top:bot), h(top:bot))
-
-      !# non-PAR light fudge
-      nir(top:bot) = (par(top:bot)/0.45) * 0.510
-      uva(top:bot) = (par(top:bot)/0.45) * 0.035
-      uvb(top:bot) = (par(top:bot)/0.45) * 0.005
+         ! non PAR bandwidth fractions (set assuming single light extinction)
+         nir(top:bot) = (par(top:bot)/par_frac) * nir_frac
+         uva(top:bot) = (par(top:bot)/par_frac) * uva_frac
+         uvb(top:bot) = (par(top:bot)/par_frac) * uvb_frac
+      ELSE
+        ! non PAR bandwidth fractions (set assuming single light extinction)
+        nir(top:bot) = (lpar(top:bot)/par_frac) * nir_frac
+        uva(top:bot) = (lpar(top:bot)/par_frac) * uva_frac
+        uvb(top:bot) = (lpar(top:bot)/par_frac) * uvb_frac
+      ENDIF
    ENDDO
 !!$OMP END DO
 

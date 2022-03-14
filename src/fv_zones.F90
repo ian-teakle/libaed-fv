@@ -184,15 +184,17 @@ END SUBROUTINE init_zones
 
 !###############################################################################
 SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
-                           extcoeff, I_0, longwave, par, tss, rain, rainloss,  &
-                           air_temp, humidity, bathy, col_taub)
+                           extcoeff, I_0, longwave, nir, par, uva, uvb, tss,   &
+                           rain, rainloss,air_temp, humidity, bathy, col_taub)
 !-------------------------------------------------------------------------------
 !ARGUMENTS
-   INTEGER,INTENT(in) :: nCols
-   LOGICAL,DIMENSION(:), INTENT(in) :: active
-   AED_REAL,DIMENSION(:),INTENT(in) :: temp, salt, h, z, area, wnd, rain
-   AED_REAL,DIMENSION(:),INTENT(in) :: rho, extcoeff, I_0, longwave, par, tss
-   AED_REAL,DIMENSION(:),INTENT(in) :: rainloss, air_temp, humidity, bathy
+   INTEGER,              INTENT(in) :: nCols
+   LOGICAL, DIMENSION(:),INTENT(in) :: active
+   AED_REAL,DIMENSION(:),INTENT(in) :: h, z, area, bathy
+   AED_REAL,DIMENSION(:),INTENT(in) :: temp, salt, rho
+   AED_REAL,DIMENSION(:),INTENT(in) :: I_0, extcoeff, nir, par, uva, uvb
+   AED_REAL,DIMENSION(:),INTENT(in) :: wnd, rain, longwave, rainloss, air_temp, humidity
+   AED_REAL,DIMENSION(:),INTENT(in) :: tss
    AED_REAL :: col_taub
 !
 !LOCALS
@@ -213,7 +215,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
    zone_ss2 = zero_
    zone_ss3 = zero_
    zone_ss4 = zero_
+   zone_nir = zero_
    zone_par = zero_
+   zone_uva = zero_
+   zone_uvb = zero_
    zone_wind = zero_
    zone_rain = zero_
    zone_rainloss = zero_
@@ -249,7 +254,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
       zone_ss2(zon)      = zone_ss2(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
       zone_ss3(zon)      = zone_ss3(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
       zone_ss4(zon)      = zone_ss4(zon) + tss(col)  !   For FV API 2.0 (To be connected to sed_conc)
-      zone_par(zon)      = zone_par(zon) + par(col)
+      zone_nir(zon)      = zone_nir(zon) + nir(col)  !   For FV API 2.0 (To be connected to light)
+      zone_par(zon)      = zone_par(zon) + par(col)  !   For FV API 2.0 (To be connected to light)
+      zone_uva(zon)      = zone_uva(zon) + uva(col)  !   For FV API 2.0 (To be connected to light)
+      zone_uvb(zon)      = zone_uvb(zon) + uvb(col)  !   For FV API 2.0 (To be connected to light)
       zone_wind(zon)     = zone_wind(zon) + wnd(col)
       zone_rain(zon)     = zone_rain(zon) + rain(col)
       zone_rainloss(zon) = zone_rainloss(zon) + rainloss(col)
@@ -282,10 +290,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
    zone_extc     =     zone_extc / zone_count ;  IF (dbg) print *,'     zone_extc: ',zone_extc(dbg)
   !zone_taub     =     zone_taub / zone_count   !MH also seems to be missing but NOT cumulating
    zone_tss      =      zone_tss / zone_count ;  IF (dbg) print *,'     zone_tss: ',zone_tss(dbg)
+   zone_nir      =      zone_nir / zone_count ;  IF (dbg) print *,'     zone_nir: ',zone_nir(dbg)
    zone_par      =      zone_par / zone_count ;  IF (dbg) print *,'     zone_par: ',zone_par(dbg)
-   zone_nir      =     (zone_par/0.45) * 0.510  !   For FV API 2.0 (To be dynamics)
-   zone_uva      =     (zone_par/0.45) * 0.035  !   For FV API 2.0 (To be dynamics)
-   zone_uvb      =     (zone_par/0.45) * 0.005  !   For FV API 2.0 (To be dynamics)
+   zone_uva      =      zone_uva / zone_count ;  IF (dbg) print *,'     zone_uva: ',zone_uva(dbg)
+   zone_uvb      =      zone_uvb / zone_count ;  IF (dbg) print *,'     zone_uvb: ',zone_uvb(dbg)
 
 
    ! clean empty zones   !MH THERE WILL BE A DIVEDE BY ZERO BEFORE THIS, ABOVE.
@@ -303,7 +311,10 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
          zone_ss2(zon)      = 0.0
          zone_ss3(zon)      = 0.0
          zone_ss4(zon)      = 0.0
+         zone_nir(zon)      = 0.0
          zone_par(zon)      = 0.0
+         zone_uva(zon)      = 0.0
+         zone_uvb(zon)      = 0.0
          zone_wind(zon)     = 0.0
          zone_rain(zon)     = 0.0
          zone_rainloss(zon) = 0.0
