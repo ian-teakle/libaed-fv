@@ -2,12 +2,12 @@
 !#                                                                             #
 !# fv_zones.F90                                                                #
 !#                                                                             #
-!# Interface for FV (Finite Volume) Model to AED2 modules.                     #
+!# Interface for FV (Finite Volume) Model to AED modules.                      #
 !#   Designed for TUFLOW-FV, released by BMT-WBM:                              #
 !#   http://www.tuflow.com/Tuflow%20FV.aspx                                    #
 !#                                                                             #
 !# This is a support module to allow ability for benthic/sediment zones in     #
-!# AED2, including zone-averaging                                              #
+!# AED, including zone-averaging                                               #
 !#                                                                             #
 !#   -----------------------------------------------------------------------   #
 !#                                                                             #

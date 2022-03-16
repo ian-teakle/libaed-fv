@@ -808,7 +808,7 @@ SUBROUTINE set_env_aed_models(dt_,              &
 !BEGIN
    print *,'    set_env_aed_models : linking to host environment vars '
 
-   !# Provide pointers to arrays with environmental variables to AED2.
+   !# Provide pointers to arrays with environmental variables to AED.
    dt = dt_
 
    !# 2D (sheet) variables being pointed to
@@ -1747,7 +1747,7 @@ SUBROUTINE Settling(N,dt,h,wvel,Fsed,Y)
           Y(k)=Y(k) - step_dt * ((cu(k) - cu(k+1)) / h(k))
       ENDDO
    ENDDO !# end of the iteration loop
-   Fsed = Fsed / dt !# Average flux rate for full time step used in AED2
+   Fsed = Fsed / dt !# Average flux rate for full time step used in AED
 END SUBROUTINE Settling
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -1928,7 +1928,7 @@ END SUBROUTINE Particles
 SUBROUTINE BioExtinction(column,count,extc)
 !-------------------------------------------------------------------------------
 !
-! Calculate the specific light attenuation additions due to AED2 modules
+! Calculate the specific light attenuation additions due to AED modules
 !
 !-------------------------------------------------------------------------------
 !ARGUMENTS
