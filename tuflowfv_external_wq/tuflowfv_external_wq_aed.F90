@@ -27,7 +27,7 @@ CONTAINS
     PROCEDURE :: destruct => fvwq_ctrl_destruct_external
 END TYPE
 
-TYPE,EXTENDS(fvwq_class) :: fvwq_external
+TYPE,EXTENDS(fvwq_class_v1) :: fvwq_external
     LOGICAL :: init                                             ! INITIALSED STATUS
 CONTAINS
     PROCEDURE :: construct => fvwq_construct_external
