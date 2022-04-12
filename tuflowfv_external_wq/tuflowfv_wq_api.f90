@@ -191,7 +191,7 @@ TYPE,ABSTRACT,EXTENDS(fvwq_class) :: fvwq_class_v2 ! Not backward compatible wit
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: solarshade               ! REDUCTION OF SOLAR RADIATION DUE TO SHADING RETURNED FROM WQ (NC2)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: rainloss                 ! LOSS OF RAINFALL INTO EXPOSED SEDIMENT RETURNED FROM WQ (NC2)
     ! Suspended sediment environmental arrays
-    INTEGER,PUBLIC :: Nsed                                             ! NUMBER OF SEDIMENT FRACTIONS    
+    INTEGER,PUBLIC :: Nsed                                             ! NUMBER OF SEDIMENT FRACTIONS
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: sed_d50                  ! SEDIMENT MEDIAN PARTICLE DIAMETER (NSED)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: sed_ws0                  ! SEDIMENT CLEAR WATER SETTLING VELOCITY (NSED)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: sed_conc               ! SEDIMENT CONCENTRATION (NSED,NC3)
