@@ -107,11 +107,11 @@ TYPE,ABSTRACT :: fvwq_class
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: dcdt                   ! TEMPORAL DERIVATIVE OF WQ CONSTITUENTS (NWQ,NC3)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: diag                   ! DIAGNOSTIC WQ VARIABLES (NDIAG,NC3)
 CONTAINS
+    PROCEDURE(fvwq_initialise),NOPASS,DEFERRED :: initialise
     PROCEDURE(fvwq_construct),DEFERRED :: construct
     PROCEDURE(fvwq_destruct),DEFERRED :: destruct
-    PROCEDURE(fvwq_initialise),DEFERRED :: initialise
     PROCEDURE(fvwq_update),DEFERRED :: update
-END TYPE
+END TYPE fvwq_class
 TYPE,ABSTRACT,EXTENDS(fvwq_class) :: fvwq_class_v1
     ! Mesh indexing and property arrays
     INTEGER,PUBLIC,POINTER,DIMENSION(:) :: surf_map                    ! SURFACE CELL MAP (NC2)
@@ -153,7 +153,7 @@ TYPE,ABSTRACT,EXTENDS(fvwq_class) :: fvwq_class_v1
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: part_tstat             ! PARTICLE AGE PROPERTIES (Ntstat,Npart)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: part_prop              ! PARTICLE ENVIRONMENTAL PROPERTIES (Nprop,Npart)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: part_mass              ! PARTICLE MASS (NWQ,Npart) i.e. ptm%part%U
-END TYPE
+END TYPE fvwq_class_v1
 TYPE,ABSTRACT,EXTENDS(fvwq_class) :: fvwq_class_v2 ! Not backward compatible with v1
     ! Mesh indexing and property arrays
     INTEGER,PUBLIC,POINTER,DIMENSION(:) :: surf_map                    ! SURFACE CELL MAP (NC2)
@@ -186,12 +186,13 @@ TYPE,ABSTRACT,EXTENDS(fvwq_class) :: fvwq_class_v2 ! Not backward compatible wit
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: wv_uorb                  ! WAVE ORBITAL VELOCITY (NC2)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: wv_t                     ! WAVE PERIOD (NC2)
     ! Arrays that control feedbacks between the models
+    LOGICAL,PUBLIC,POINTER,DIMENSION(:) :: evapoflag                   ! FLAG TO ENABLE CONSTITUENT EVAPORATION, DEFAULT IS FALSE i.e. NON-VOLATILE (NWQ) 
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: bioshade               ! BIOGEOCHEMICAL LIGHT EXTINCTION COEFFICIENT RETURNED FROM WQ (NSW,NC3)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: bioblock               ! FLOW BLOCKAGE FROM BIOLOGY (Nv,Dv,Cd), RETURNED FROM WQ (3,NC3)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: solarshade               ! REDUCTION OF SOLAR RADIATION DUE TO SHADING RETURNED FROM WQ (NC2)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: rainloss                 ! LOSS OF RAINFALL INTO EXPOSED SEDIMENT RETURNED FROM WQ (NC2)
     ! Suspended sediment environmental arrays
-    INTEGER,PUBLIC :: Nsed                                             ! NUMBER OF SEDIMENT FRACTIONS
+    INTEGER,PUBLIC :: Nsed                                             ! NUMBER OF SEDIMENT FRACTIONS    
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: sed_d50                  ! SEDIMENT MEDIAN PARTICLE DIAMETER (NSED)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:) :: sed_ws0                  ! SEDIMENT CLEAR WATER SETTLING VELOCITY (NSED)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: sed_conc               ! SEDIMENT CONCENTRATION (NSED,NC3)
@@ -209,8 +210,16 @@ TYPE,ABSTRACT,EXTENDS(fvwq_class) :: fvwq_class_v2 ! Not backward compatible wit
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: part_tstat             ! PARTICLE AGE PROPERTIES (Ntstat,Npart)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: part_prop              ! PARTICLE ENVIRONMENTAL PROPERTIES (Nprop,Npart)
     REAL(wqrk),PUBLIC,POINTER,DIMENSION(:,:) :: part_mass              ! PARTICLE MASS (NWQ,Npart) i.e. ptm%part%U
-END TYPE
+END TYPE fvwq_class_v2
 ABSTRACT INTERFACE
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    SUBROUTINE fvwq_initialise(wq)
+    IMPORT fvwq_class
+    CLASS(fvwq_class),ALLOCATABLE,INTENT(INOUT) :: wq
+    ! This routine should be used to deallocate and reallocate the wq object, i.e.
+    ! DEALLOCATE(wq)
+    ! ALLOCATE(fvwq_class_extended :: wq)
+    END SUBROUTINE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     SUBROUTINE fvwq_construct(wq,errstat,errmsg)
     IMPORT fvwq_class
@@ -220,13 +229,6 @@ ABSTRACT INTERFACE
     END SUBROUTINE
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     SUBROUTINE fvwq_destruct(wq,errstat,errmsg)
-    IMPORT fvwq_class
-    CLASS(fvwq_class),INTENT(INOUT) :: wq
-    INTEGER,INTENT(OUT) :: errstat
-    CHARACTER(LEN=*),INTENT(OUT) :: errmsg
-    END SUBROUTINE
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    SUBROUTINE fvwq_initialise(wq,errstat,errmsg)
     IMPORT fvwq_class
     CLASS(fvwq_class),INTENT(INOUT) :: wq
     INTEGER,INTENT(OUT) :: errstat

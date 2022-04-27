@@ -30,9 +30,9 @@ END TYPE
 TYPE,EXTENDS(fvwq_class_v1) :: fvwq_external
     LOGICAL :: init                                             ! INITIALSED STATUS
 CONTAINS
+    PROCEDURE,NOPASS :: initialise => fvwq_initialise_external
     PROCEDURE :: construct => fvwq_construct_external
     PROCEDURE :: destruct => fvwq_destruct_external
-    PROCEDURE :: initialise => fvwq_initialise_external
     PROCEDURE :: update => fvwq_update_external
 END TYPE
 
@@ -138,6 +138,16 @@ ctrl%isActivated = .FALSE.
 
 END SUBROUTINE fvwq_ctrl_destruct_external
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+SUBROUTINE fvwq_initialise_external(wq)
+!DEC$ ATTRIBUTES DLLEXPORT :: fvwq_initialise_external
+!DEC$ ATTRIBUTES ALIAS : 'FVWQ_INITIALISE_EXTERNAL' :: fvwq_initialise_external
+CLASS(fvwq_class),ALLOCATABLE,INTENT(INOUT) :: wq
+
+DEALLOCATE(wq)
+ALLOCATE(fvwq_external :: wq)
+
+END SUBROUTINE fvwq_initialise_external
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE fvwq_construct_external(wq,errstat,errmsg)
 !DEC$ ATTRIBUTES DLLEXPORT :: fvwq_construct_external
 !DEC$ ATTRIBUTES ALIAS : 'FVWQ_CONSTRUCT_EXTERNAL' :: fvwq_construct_external
@@ -236,18 +246,6 @@ IF (openstat) WRITE(logunit,'(a)') 'Successful.'
 wq%init = .FALSE.
 
 END SUBROUTINE fvwq_destruct_external
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-SUBROUTINE fvwq_initialise_external(wq,errstat,errmsg)
-!DEC$ ATTRIBUTES DLLEXPORT :: fvwq_initialise_external
-!DEC$ ATTRIBUTES ALIAS : 'FVWQ_INITIALISE_EXTERNAL' :: fvwq_initialise_external
-CLASS(fvwq_external),INTENT(INOUT) :: wq
-INTEGER,INTENT(OUT) :: errstat
-CHARACTER(LEN=*),INTENT(OUT) :: errmsg
-
-! fvaed library does not require initialisation of wq object
-errstat = 0; errmsg = ''
-
-END SUBROUTINE fvwq_initialise_external
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 SUBROUTINE fvwq_update_external(wq,errstat,errmsg)
 !DEC$ ATTRIBUTES DLLEXPORT :: fvwq_update_external
