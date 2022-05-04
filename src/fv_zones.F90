@@ -325,6 +325,7 @@ SUBROUTINE calc_zone_areas(nCols, active, temp, salt, h, z, area, wnd, rho,    &
          zone_longwave(zon) = 0.0
         !zone_taub(zon)     = 0.0
       endif
+
    end do
 END SUBROUTINE calc_zone_areas
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -442,26 +443,26 @@ SUBROUTINE define_column_zone(column, zon, n_aed_vars)!, n_vars)
       IF ( tvar%extern ) THEN !# global variable
          ev = ev + 1
          SELECT CASE (tvar%name)
-            CASE ( 'temperature' ) ; column(av)%cell => zone_temp
-            CASE ( 'salinity' )    ; column(av)%cell => zone_salt
-            CASE ( 'density' )     ; column(av)%cell => zone_rho
-            CASE ( 'layer_ht' )    ; column(av)%cell => zone_height
+            CASE ( 'temperature' ) ; column(av)%cell => zone_temp(zon:zon)
+            CASE ( 'salinity' )    ; column(av)%cell => zone_salt(zon:zon)
+            CASE ( 'density' )     ; column(av)%cell => zone_rho(zon:zon)
+            CASE ( 'layer_ht' )    ; column(av)%cell => zone_height(zon:zon)
             CASE ( 'layer_area' )  ; column(av)%cell_sheet => zone_area(zon)
             CASE ( 'rain' )        ; column(av)%cell_sheet => zone_rain(zon)
             CASE ( 'rainloss' )    ; column(av)%cell_sheet => zone_rainloss(zon)
             CASE ( 'material' )    ; column(av)%cell_sheet => zone(zon)
             CASE ( 'bathy' )       ; column(av)%cell_sheet => zone_bathy(zon)
-            CASE ( 'extc_coef' )   ; column(av)%cell => zone_extc
-            CASE ( 'tss' )         ; column(av)%cell => zone_tss
-            CASE ( 'ss1' )         ; column(av)%cell => zone_ss1
-            CASE ( 'ss2' )         ; column(av)%cell => zone_ss2
-            CASE ( 'ss3' )         ; column(av)%cell => zone_ss3
-            CASE ( 'ss4' )         ; column(av)%cell => zone_ss4
+            CASE ( 'extc_coef' )   ; column(av)%cell => zone_extc(zon:zon)
+            CASE ( 'tss' )         ; column(av)%cell => zone_tss(zon:zon)
+            CASE ( 'ss1' )         ; column(av)%cell => zone_ss1(zon:zon)
+            CASE ( 'ss2' )         ; column(av)%cell => zone_ss2(zon:zon)
+            CASE ( 'ss3' )         ; column(av)%cell => zone_ss3(zon:zon)
+            CASE ( 'ss4' )         ; column(av)%cell => zone_ss4(zon:zon)
             CASE ( 'cell_vel' )    ; column(av)%cell => null() ! zone_cvel
-            CASE ( 'nir' )         ; column(av)%cell => zone_nir
-            CASE ( 'par' )         ; column(av)%cell => zone_par
-            CASE ( 'uva' )         ; column(av)%cell => zone_uva
-            CASE ( 'uvb' )         ; column(av)%cell => zone_uvb
+            CASE ( 'nir' )         ; column(av)%cell => zone_nir(zon:zon)
+            CASE ( 'par' )         ; column(av)%cell => zone_par(zon:zon)
+            CASE ( 'uva' )         ; column(av)%cell => zone_uva(zon:zon)
+            CASE ( 'uvb' )         ; column(av)%cell => zone_uvb(zon:zon)
             CASE ( 'sed_zone' )    ; column(av)%cell_sheet => zone(zon)
             CASE ( 'wind_speed' )  ; column(av)%cell_sheet => zone_wind(zon)
             CASE ( 'par_sf' )      ; column(av)%cell_sheet => zone_I_0(zon)
