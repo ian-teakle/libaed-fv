@@ -1466,7 +1466,7 @@ SUBROUTINE do_aed_models(nCells, nCols)
       !# now go forth and solve
       DO lev = top, bot
          DO i = 1, n_vars
-      !      cc(i,lev)=cc(i,lev)+dt*flux(i,lev)
+            cc(i,lev)=cc(i,lev)+dt*flux(i,lev)
 #if DEBUG>1
             !# check for NaNs
             IF ( ieee_is_nan(cc(i,lev)) ) THEN
@@ -1490,7 +1490,10 @@ SUBROUTINE do_aed_models(nCells, nCols)
   !        cc(i,bot)=cc(i,bot)+dt*flux_ben(i)
   !      ENDDO
   !   ENDIF
-      cc(i,bot)=cc(i,bot)+dt*(flux_ben(i) + flux_benz(i, zm(col)))
+      DO i = n_vars+1, n_vars+n_vars_ben
+       !print *,'i ',i,n_vars,n_vars_ben,bot,col,flux_ben(i),flux_benz(i, zm(col))
+        cc(i,bot)=cc(i,bot)+dt*(flux_ben(i) + flux_benz(i, zm(col)))
+      ENDDO
 #if DEBUG>1
       DO i = n_vars+1, n_vars+n_vars_ben
          !# check for NaNs
