@@ -43,7 +43,9 @@ ifeq ($(F90),ifort)
   endif
   FFLAGS+=-real-size 64
 else ifeq ($(F90),flang)
-  INCLUDES+=-I../flang_extra/mod
+  ifeq ($(OSTYPE),FreeBSD)
+    INCLUDES+=-I../ancillary/freebsd/mod
+  endif
   DEBUG_FFLAGS=-g
   OPT_FFLAGS=-O3
   FFLAGS=-g -fPIC -module ${moddir} $(DEFINES) $(INCLUDES)
