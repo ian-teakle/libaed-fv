@@ -3,8 +3,8 @@
 # with hydrodynamic driver wrapper
 #
 
-SOVERS=1
-VERS=3.0
+SOVERS=2
+VERS=2.1
 
 objdir=obj
 srcdir=src
