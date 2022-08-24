@@ -75,6 +75,12 @@ ifneq ($(AEDDMODIR),)
   LIBDMOAED=aed-demo
   SOFLAGS+=${AEDDMODIR}/lib/lib${LIBDMOAED}.a
 endif
+ifneq ($(AEDLGTDIR),)
+  LIBLGTAED=aed-lighting
+  SOFLAGS+=${AEDLGTDIR}/lib/lib${LIBLGTAED}.a
+else
+  EXTFLAG+=-DNO_LGT
+endif
 ifneq ($(AEDDEVDIR),)
   LIBDEVAED=aed-dev
   SOFLAGS+=${AEDDEVDIR}/lib/lib${LIBDEVAED}.a
@@ -130,6 +136,9 @@ ifneq ($(AEDRIPDIR),)
 endif
 ifneq ($(AEDDMODIR),)
 	( cd ${objdir} ; ar -x ${AEDDMODIR}/lib/lib${LIBDMOAED}.a )
+endif
+ifneq ($(AEDLGTDIR),)
+	( cd ${objdir} ; ar -x ${AEDLGTDIR}/lib/lib${LIBLGTAED}.a )
 endif
 ifneq ($(AEDDEVDIR),)
 	( cd ${objdir} ; ar -x ${AEDDEVDIR}/lib/lib${LIBDEVAED}.a )
